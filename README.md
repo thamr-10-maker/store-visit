@@ -1,0 +1,1 @@
+# Store Visit\n\nStore visit report tool: score a visit, add photos, track actions and share the report.\n\n- `config.js` holds the Firebase settings (the shared database).\n- Stores, visits, photos and actions live in the database, not in this repository.\n

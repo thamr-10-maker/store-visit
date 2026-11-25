@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Store Visit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a phone-first work tool. One column, big touch targets, status told by colour + shape. */
+:root{
+  --bg:#f3f4f1; --surface:#ffffff; --surface2:#e9ebe6; --ink:#16201c; --muted:#5d6a64; --line:#d5d9d2;
+  --accent:#0d5c4b; --accent-ink:#ffffff; --accent-soft:#dcebe5;
+  --ok:#1f7a45; --ok-soft:#dff1e5; --warn:#a15c00; --warn-soft:#fbecd2; --bad:#b3261e; --bad-soft:#fadfdc;
+  --font:"IBM Plex Sans","IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#111614; --surface:#1a211e; --surface2:#242d29; --ink:#e9eee9; --muted:#9aa8a1; --line:#334039;
+    --accent:#4fc3a5; --accent-ink:#06231b; --accent-soft:#1d3a32;
+    --ok:#62c98a; --ok-soft:#173524; --warn:#f0b35a; --warn-soft:#3b2c12; --bad:#ff8a80; --bad-soft:#42201d;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111614; --surface:#1a211e; --surface2:#242d29; --ink:#e9eee9; --muted:#9aa8a1; --line:#334039;
+  --accent:#4fc3a5; --accent-ink:#06231b; --accent-soft:#1d3a32;
+  --ok:#62c98a; --ok-soft:#173524; --warn:#f0b35a; --warn-soft:#3b2c12; --bad:#ff8a80; --bad-soft:#42201d;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.2}
+h1{font-size:1.5rem;font-weight:700} h2{font-size:1.15rem;font-weight:600} h3{font-size:1rem;font-weight:600}
+p{margin:0}
+.num{font-variant-numeric:tabular-nums}
+#app{max-width:760px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding-bottom:84px}
+.top{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.top .who{flex:1;min-width:0}
+.top .who b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .who span{color:var(--muted);font-size:.82rem}
+.pill{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:600;font-size:.9rem;min-height:40px}
+main{padding:16px;display:flex;flex-direction:column;gap:16px;flex:1}
+.banner{padding:10px 14px;border-radius:var(--r);font-size:.9rem;background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.muted{color:var(--muted)} .small{font-size:.85rem}
+.sec{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:4px}
+.sec span{color:var(--muted);font-size:.85rem}
+.btn{border:0;border-radius:12px;padding:14px 18px;font-weight:600;background:var(--accent);color:var(--accent-ink);min-height:52px}
+.btn.alt{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.btn.soft{background:var(--accent-soft);color:var(--accent)}
+.btn.bad{background:var(--bad-soft);color:var(--bad)}
+.btn.sm{padding:8px 12px;min-height:40px;font-size:.9rem;border-radius:10px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.task{display:flex;gap:12px;align-items:center;width:100%;text-align:start;background:var(--surface);border:1px solid var(--line);border-inline-start:6px solid var(--line);border-radius:var(--r);padding:14px;min-height:64px}
+.task.done{border-inline-start-color:var(--ok)} .task.late{border-inline-start-color:var(--bad)} .task.due{border-inline-start-color:var(--warn)}
+.task b{display:block} .task small{color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:.78rem;font-weight:600;white-space:nowrap;background:var(--surface2);color:var(--muted)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.bad{background:var(--bad-soft);color:var(--bad)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.acc{background:var(--accent-soft);color:var(--accent)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;text-align:start;min-height:84px;display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+.tile .let{font-weight:700;color:var(--accent);font-size:.8rem;letter-spacing:.04em}
+.tile b{font-weight:600;line-height:1.25}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.kpi b{display:block;font-size:1.7rem;font-weight:700;line-height:1.1} .kpi span{color:var(--muted);font-size:.8rem}
+.bar{height:8px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);border-radius:99px}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs div{display:flex;width:100%;max-width:760px}
+nav.tabs button{flex:1;border:0;background:none;padding:10px 2px 12px;font-size:.74rem;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;min-height:60px}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button.on{color:var(--accent)}
+/* wizard */
+.wiz{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;flex-direction:column}
+.wiz header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.wiz header .t{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wiz .prog{height:6px;background:var(--surface2)} .wiz .prog i{display:block;height:100%;background:var(--accent);transition:width .2s}
+.wiz .body{flex:1;overflow:auto;padding:22px 18px;display:flex;flex-direction:column;gap:18px;max-width:760px;width:100%;margin:0 auto}
+.wiz .q{font-size:1.55rem;font-weight:600;line-height:1.25;text-wrap:balance}
+.wiz .q.long{font-size:1.2rem}
+.wiz .hint{color:var(--muted)}
+.wiz footer{display:flex;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);max-width:760px;width:100%;margin:0 auto}
+.wiz footer .btn{flex:1}
+.big{width:100%;font-size:1.35rem;padding:16px;border-radius:14px;border:2px solid var(--line);background:var(--surface);min-height:64px}
+textarea.big{min-height:190px;resize:vertical;line-height:1.4}
+.big:focus{border-color:var(--accent);outline:0}
+.opts{display:grid;gap:10px}
+.opts.two{grid-template-columns:1fr 1fr}
+.opt{border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:16px;font-size:1.15rem;font-weight:600;min-height:64px;text-align:center}
+.opt.huge{font-size:1.6rem;min-height:120px}
+.opt.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.opt.yes.on{border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
+.opt.no.on{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:.85rem;font-weight:600;color:var(--muted)}
+.in{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);min-height:46px}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.list>*{padding:12px 14px;border-top:1px solid var(--line)} .list>*:first-child{border-top:0}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:320px;margin:0 auto}
+.pad button{font-size:1.5rem;font-weight:600;min-height:64px;border-radius:14px;border:1px solid var(--line);background:var(--surface)}
+.dots{display:flex;gap:12px;justify-content:center} .dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--muted)} .dots i.on{background:var(--accent);border-color:var(--accent)}
+.days{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.days button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 12px;min-width:64px;text-align:center}
+.days button b{display:block;font-size:1.1rem} .days button span{font-size:.72rem;color:var(--muted)}
+.days button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)} .days button.on span{color:var(--accent-ink)}
+.pages{display:flex;flex-direction:column;gap:12px}
+.pages img{max-width:100%;border:1px solid var(--line);border-radius:6px;background:#fff}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:40;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;max-width:90%}
+.modal{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+.modal .sheet{background:var(--bg);width:100%;max-width:760px;max-height:88%;overflow:auto;border-radius:18px 18px 0 0;padding:18px;display:flex;flex-direction:column;gap:12px}
+.score{font-size:3rem;font-weight:700;line-height:1}
+table.t{width:100%;border-collapse:collapse;font-size:.9rem} table.t td,table.t th{padding:8px 6px;border-top:1px solid var(--line);text-align:start;vertical-align:top} table.t th{color:var(--muted);font-weight:600;border-top:0}
+.scroll{overflow-x:auto}
+[dir="rtl"] .flip{transform:scaleX(-1)}
+@media (max-width:400px){.kpis{grid-template-columns:1fr 1fr 1fr}.wiz .q{font-size:1.35rem}}
+
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.thumbs div{position:relative}
+.thumbs img{width:92px;height:92px;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block}
+.thumbs button{position:absolute;top:-8px;inset-inline-end:-8px;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-weight:700}
+.band{display:inline-block;border-radius:999px;padding:4px 12px;font-weight:700;font-size:.82rem}
+.band.g{background:var(--ok-soft);color:var(--ok)} .band.a{background:var(--warn-soft);color:var(--warn)} .band.r{background:var(--bad-soft);color:var(--bad)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"><main><div class="card"><b>Loading…</b></div></main></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="config.js"></script>
+<script>
+
+"use strict";
+/* ===================== the form, exactly as written ===================== */
+const SECTIONS = [
+  ["Performance Review", ["Leadership clear on current MTD sales performance versus target", "Team aware of daily revenue, conversion, ATV and UPT targets", "Performance communicated through daily huddles and trading updates", "Clear and owned plan in place to close any sales gap", "Peak trading hours understood and staffing aligned to commercial opportunity", "Payroll and productive hours managed without compromising consumer experience", "Store P&L and EBIT opportunities reviewed with practical actions"]],
+  ["Consumer Experience", ["CREATE | Is the store environment clean, premium and ready to create an extraordinary first impression?", "CREATE | Are customers welcomed warmly and guided through the store in an inclusive, personalised way?", "LEAD | Does the team use thoughtful questions to understand the customer’s environment, intent and physical needs?", "LEAD | Does the team listen actively, confirm understanding and adapt the service to customer cues?", "OFFER | Does the team provide personalised product education linking benefits to the customer’s needs?", "OFFER | Are footwear and apparel try-on rituals delivered with care, attention to detail and clear communication?", "UNLOCK | Does the team uncover additional needs and recommend relevant link, alternative or cross-selling solutions?", "UNLOCK | Are customer hesitations acknowledged, clarified and resolved with confident solutions or fulfilment options?", "DEEPEN | Is the experience closed with a seamless transaction, sincere gratitude, feedback invitation and future connection?", "CLOUD CX COACHING | Is the CLOUD CX Observation App being used, and how many team observations have been completed?"]],
+  ["Product & Availability", ["Key styles, best sellers and available sizes represented on the sales floor", "Product gaps and missing sizes understood with actions raised", "New arrivals, seasonal stories and campaign products visible and easy to shop", "Refill completed frequently with stronger routines during peak periods", "Deliveries processed on time and backlog controlled through an action plan", "BOH-to-floor refill routines clear and followed", "Stock counts or RFID routines completed and reports reviewed", "Negative inventory, mismates, defective and obsolete product routines completed", "Product and availability risks shared with Merchandising or Buying"]],
+  ["Visual Merchandising", ["Windows and entrance displays aligned to current brand direction", "Magic Wall commercially presented and maintained to standard", "Magic Wall Try On shoes accounted for in the daily count", "Footwear correctly priced and laced to the required standard", "Apparel correctly priced and presented to the required standard", "Accessories correctly displayed, priced and fully replenished"]],
+  ["Team & Leadership", ["Clear Leader on Duty visible on the floor", "Leader actively coaching, directing and assigning responsibilities", "Floor coverage protected during peak trading periods", "Team engaged, brand appropriate and clear on current priorities", "Daily huddles, coaching and training completed with commercial focus", "New starters supported with onboarding and individual training goals", "Grooming and uniform standards met", "Team knows how to contact HR and report concerns or hazards", "Strong performance recognised and communicated consistently"]],
+  ["Operations & BOH", ["Daily and weekly checklists complete, current and signed", "BOH clean and free from dust, waste and unnecessary clutter", "BOH pathways clear and safe for team movement", "Defined zones in place for footwear, apparel and accessories", "Separate zones maintained for receiving, returns, backstock and new arrivals", "Footwear organised by model, size and colour", "Footwear boxes aligned consistently and sizes arranged in the required Z-flow", "Apparel organised by category, size and colour", "Apparel clearly labelled and stored to the required folding standard?", "Shelves, boxes and stockroom zones clearly and consistently labelled", "Shopfloor products link clearly to the correct stockroom rack locations", "Receiving, return and replenishment areas tidy and controlled"]],
+  ["Compliance & Safety", ["Immediate life-safety, security or operational hazards in the store", "Emergency exits, access routes and fire equipment physically unobstructed", "Stockroom racking, ladders and high-level storage safe and correctly positioned", "Electrical panels, sockets, cables and equipment free from visible safety risks", "Consumer and team areas free from slip, trip and obstruction hazards", "Previously reported incidents, hazards or safety actions been closed or actively followed up"]],
+];
+const QS = []; SECTIONS.forEach(([name, list], si) => list.forEach(text => QS.push({ id: "q" + (QS.length + 1), n: QS.length + 1, si, sec: name, text })));
+const METRICS = ["Revenue", "Conversion", "ATV", "UPT", "Productivity (Revenue / FOH sqm / Month)", "Traffic", "Mystery Shopper", "Shrink%", "EBIT %"];
+const SUMMARY = ["Key Strengths", "Key Opportunities", "Immediate Actions Agreed", "Support Required", "Store Manager / Leader Feedback", "Follow-up Required"];
+const PRIOS = ["Critical", "High", "Medium", "Low"], STATI = ["Open", "In Progress", "Closed", "On Hold"];
+const MAX_PHOTOS = 3;
+
+/* ===================== helpers ===================== */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pad2 = n => String(n).padStart(2, "0");
+const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const today = () => ymd(new Date());
+const addDays = (s, n) => { const [y, m, d] = s.split("-").map(Number); const x = new Date(y, m - 1, d + n); return ymd(x); };
+const MON = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const fmtD = s => (s ? `${s.slice(8)}.${s.slice(5, 7)}.${s.slice(0, 4)}` : "");
+const longD = s => (s ? `${+s.slice(8)} ${MON[+s.slice(5, 7) - 1]} ${s.slice(0, 4)}` : "");
+const rid = () => Math.random().toString(36).slice(2, 10);
+const num = v => { const n = parseFloat(String(v ?? "").replace(/,/g, "").replace(/%/g, "")); return isFinite(n) ? n : null; };
+const clone = o => JSON.parse(JSON.stringify(o));
+const pct = v => (v === null || v === undefined ? "–" : Math.round(v * 100) + "%");
+const band = v => (v >= 0.9 ? ["On Point", "g"] : v >= 0.75 ? ["Focus Required", "a"] : ["Immediate Action", "r"]);
+let toastT = null;
+function toast(msg) { let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); } t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600); }
+function ask(title, body, okLabel, cb, danger) {
+  const m = document.createElement("div"); m.className = "modal";
+  m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><h2>${esc(title)}</h2>${body ? `<p class="muted">${esc(body)}</p>` : ""}<div class="row"><button class="btn alt grow" id="askNo">Cancel</button><button class="btn ${danger ? "bad" : ""} grow" id="askYes">${esc(okLabel)}</button></div></div>`;
+  document.body.appendChild(m); $("#askNo", m).onclick = () => m.remove(); $("#askYes", m).onclick = () => { m.remove(); cb(); };
+}
+
+/* ===================== scoring: the same sums as the Excel form ===================== */
+function scoreOf(visit) {
+  const ans = (visit && visit.ans) || {}, secs = SECTIONS.map(() => ({ y: 0, n: 0, na: 0, done: 0, total: 0 }));
+  QS.forEach(q => { const s = secs[q.si], v = ans[q.id] && ans[q.id].v; s.total++; if (v) s.done++; if (v === "y") s.y++; else if (v === "n") s.n++; else if (v === "na") s.na++; });
+  secs.forEach(s => { s.score = s.y + s.n ? s.y / (s.y + s.n) : 0; });
+  const Y = secs.reduce((a, s) => a + s.y, 0), N = secs.reduce((a, s) => a + s.n, 0), done = secs.reduce((a, s) => a + s.done, 0);
+  return { secs, y: Y, n: N, overall: Y + N ? Y / (Y + N) : 0, done, total: QS.length, any: Y + N > 0 };
+}
+
+/* ===================== data ===================== */
+const S = { mode: "loading", ready: false, cfg: null, visits: {}, actions: {}, photos: {} };
+let DB = null, ME = null;
+const LS = "sv-local-v1";
+const lsSave = () => { if (S.mode !== "local") return; try { localStorage.setItem(LS, JSON.stringify({ cfg: S.cfg, visits: S.visits, actions: S.actions })); } catch (e) {} };
+const queues = {};
+function qWrite(path, fn) { const p = (queues[path] || Promise.resolve()).then(fn).catch(e => { console.error("write failed", path, e); toast("Could not save. Check the connection and try again."); }); queues[path] = p; return p; }
+function dataInit() {
+  if (window.SB_FIREBASE && window.SB_FIREBASE.projectId && window.firebase) { try { firebase.initializeApp(window.SB_FIREBASE); DB = firebase.firestore(); } catch (e) { console.error(e); DB = null; } }
+  if (!DB) { S.mode = "local"; try { const d = JSON.parse(localStorage.getItem(LS) || "null"); if (d) { S.cfg = d.cfg; S.visits = d.visits || {}; S.actions = d.actions || {}; } } catch (e) {} S.ready = true; render(); return; }
+  S.mode = "cloud"; const err = e => { console.error("db", e); S.dbError = true; soft(); };
+  setTimeout(() => { if (!S.ready) { S.slow = true; soft(); } }, 10000);
+  DB.doc("sv_cfg/main").onSnapshot(s => { S.cfg = s.exists ? clone(s.data()) : null; if (!s.metadata.fromCache || s.exists) S.ready = true; soft(); }, err);
+  DB.collection("sv_visit").onSnapshot(q => { const keep = W ? W.id : null; q.docChanges().forEach(c => { if (c.type === "removed") delete S.visits[c.doc.id]; else if (c.doc.id !== keep || !S.visits[keep]) S.visits[c.doc.id] = clone(c.doc.data()); }); soft(); }, err);
+  DB.collection("sv_action").onSnapshot(q => { S.actions = {}; q.docs.forEach(d => { S.actions[d.id] = clone(d.data()); }); soft(); }, err);
+}
+const Data = {
+  saveCfg(cfg) { S.cfg = clone(cfg); lsSave(); if (DB) return qWrite("cfg", () => DB.doc("sv_cfg/main").set(clone(cfg))); },
+  saveVisit(id) { const v = S.visits[id]; if (!v) return; v.upd = Date.now(); lsSave(); if (DB) return qWrite("v" + id, () => DB.doc("sv_visit/" + id).set(clone(v))); },
+  delVisit(id) { delete S.visits[id]; Object.entries(S.actions).filter(([, a]) => a.visit === id).forEach(([aid]) => Data.delAction(aid)); Object.keys(S.photos[id] || {}).forEach(pid => { if (DB) DB.doc("sv_photo/" + pid).delete().catch(() => {}); }); delete S.photos[id]; lsSave(); if (DB) return qWrite("v" + id, () => DB.doc("sv_visit/" + id).delete()); },
+  saveAction(id, a) { S.actions[id] = clone(a); lsSave(); if (DB) return qWrite("a" + id, () => DB.doc("sv_action/" + id).set(clone(a))); },
+  delAction(id) { delete S.actions[id]; lsSave(); if (DB) return qWrite("a" + id, () => DB.doc("sv_action/" + id).delete()); },
+  async loadPhotos(visitId) { if (S.photos[visitId]) return S.photos[visitId]; S.photos[visitId] = {}; if (DB) { try { const q = await DB.collection("sv_photo").where("visit", "==", visitId).get(); q.docs.forEach(d => { S.photos[visitId][d.id] = d.data(); }); } catch (e) { console.error(e); toast("Photos could not be loaded."); } } return S.photos[visitId]; },
+  savePhoto(visitId, pid, doc) { (S.photos[visitId] = S.photos[visitId] || {})[pid] = doc; if (DB) return qWrite("p" + pid, () => DB.doc("sv_photo/" + pid).set(doc)); },
+  delPhoto(visitId, pid) { if (S.photos[visitId]) delete S.photos[visitId][pid]; if (DB) return qWrite("p" + pid, () => DB.doc("sv_photo/" + pid).delete()); },
+};
+const stores = all => Object.entries((S.cfg && S.cfg.stores) || {}).map(([id, s]) => ({ id, ...s })).filter(s => all || s.active !== false).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+const store = id => { const s = S.cfg && S.cfg.stores && S.cfg.stores[id]; return s ? { id, ...s } : null; };
+const visitors = () => Object.entries((S.cfg && S.cfg.visitors) || {}).map(([id, v]) => ({ id, ...v })).filter(v => v.active !== false);
+const visitsOf = sid => Object.entries(S.visits).map(([id, v]) => ({ id, ...v })).filter(v => !sid || v.store === sid).sort((a, b) => (b.date + b.at).localeCompare(a.date + a.at));
+const actionsOf = vid => Object.entries(S.actions).map(([id, a]) => ({ id, ...a })).filter(a => a.visit === vid).sort((a, b) => +a.q.slice(1) - +b.q.slice(1));
+const actionRef = (vid, q) => { const i = actionsOf(vid).findIndex(a => a.q === q); return i < 0 ? "" : String(i + 1); };
+const prevVisit = v => visitsOf(v.store).filter(x => x.id !== v.id && x.status === "done" && (x.date + x.at) < (v.date + v.at))[0] || null;
+
+/* ===================== photos ===================== */
+function shrinkPhoto(file) {
+  return new Promise((res, rej) => { const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { let q = 0.72, max = 1280, out = "";
+      for (let k = 0; k < 5; k++) { const sc = Math.min(1, max / Math.max(im.width, im.height)), cv = document.createElement("canvas"); cv.width = Math.round(im.width * sc); cv.height = Math.round(im.height * sc); cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height); out = cv.toDataURL("image/jpeg", q); if (out.length < 260000) break; max = Math.round(max * 0.8); q -= 0.08; }
+      URL.revokeObjectURL(url); res(out); };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error("That file is not a picture the phone can read.")); }; im.src = url; });
+}
+const photosOf = (vid, q) => Object.entries(S.photos[vid] || {}).map(([id, p]) => ({ id, ...p })).filter(p => p.q === q).sort((a, b) => a.at - b.at);
+
+/* ===================== screens ===================== */
+let R = { view: "home" }, W = null;        // W = the visit being filled in
+const soft = () => { const a = document.activeElement; if ($(".modal") || (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== "checkbox")) { soft.pending = true; return; } render(); };
+setInterval(() => { if (soft.pending) { const a = document.activeElement; if (!$(".modal") && !(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))) { soft.pending = false; render(); } } }, 600);
+function go(view, extra) { R = Object.assign({ view }, extra || {}); window.scrollTo(0, 0); render(); }
+const TABS = [["home", "Home"], ["actions", "Actions"], ["stores", "Stores"]];
+function render() {
+  const app = $("#app");
+  if (!S.ready) { app.innerHTML = `<main><div class="card stack"><b>Loading…</b>${S.slow ? `<p class="muted small">The data can't be reached yet. Still trying.</p>` : ""}</div></main>`; return; }
+  if (!S.cfg || !visitors().length) return setupView(app);
+  if (!ME || !visitors().some(v => v.id === ME)) { const vs = visitors(); if (vs.length === 1) ME = vs[0].id; else return whoView(app); }
+  if (W && R.view === "visit") return visitView(app);
+  const me = S.cfg.visitors[ME];
+  app.innerHTML = `<div class="top"><div class="who"><b>Store Visit</b><span>${esc(me.name)}${S.mode === "local" ? " · this device only" : ""}</span></div>${visitors().length > 1 ? `<button class="pill" id="tpWho">Change visitor</button>` : ""}</div>
+    <main>${S.mode === "local" ? `<div class="banner">Not connected to the shared data. What you enter is kept on this device only.</div>` : ""}${(VIEWS[R.view] || VIEWS.home)()}</main>
+    <nav class="tabs"><div>${TABS.map(([v, l]) => `<button data-go="${v}" class="${R.view === v || (v === "home" && !TABS.some(t => t[0] === R.view)) ? "on" : ""}"><span style="font-size:.85rem">${l}</span></button>`).join("")}</div></nav>`;
+  app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
+  const w = $("#tpWho", app); if (w) w.onclick = () => { ME = null; try { localStorage.removeItem("sv-me"); } catch (e) {} render(); };
+  (HOOKS[R.view] || HOOKS.home)(app);
+}
+const VIEWS = {}, HOOKS = {};
+function setupView(app) {
+  app.innerHTML = `<main><div class="card stack"><h1>Store Visit</h1><p class="muted">Set this up once. Stores and visitors can be added or changed later.</p>
+    <div class="field"><label for="suV">Your name (the visitor)</label><input class="in" id="suV" placeholder="Name"></div>
+    <h3>First store</h3><div class="field"><label for="suS">Store name</label><input class="in" id="suS" placeholder="ON Westfield Mall, Jeddah"></div>
+    <div class="row"><div class="field grow"><label for="suC">Store code</label><input class="in" id="suC"></div><div class="field grow"><label for="suM">Store manager</label><input class="in" id="suM"></div></div>
+    <div class="field"><label for="suE">Store e-mail (for sending the report)</label><input class="in" id="suE" type="email" placeholder="store@company.com"></div>
+    <button class="btn" id="suGo">Start</button><p class="small" id="suMsg" style="color:var(--bad)"></p></div></main>`;
+  $("#suGo", app).onclick = () => { const v = $("#suV", app).value.trim(), s = $("#suS", app).value.trim(); if (!v || !s) { $("#suMsg", app).textContent = "Your name and the store name are needed."; return; }
+    const vid = "v" + rid(); ME = vid; try { localStorage.setItem("sv-me", vid); } catch (e) {}
+    Data.saveCfg({ visitors: { [vid]: { name: v, active: true } }, stores: { ["s" + rid()]: { name: s, code: $("#suC", app).value.trim(), manager: $("#suM", app).value.trim(), email: $("#suE", app).value.trim(), active: true } } }); render(); };
+}
+function whoView(app) {
+  app.innerHTML = `<main><h1>Who is visiting?</h1><div class="stack">${visitors().map(v => `<button class="task" data-v="${esc(v.id)}"><span class="grow"><b>${esc(v.name)}</b></span></button>`).join("")}</div></main>`;
+  app.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { ME = b.dataset.v; try { localStorage.setItem("sv-me", ME); } catch (e) {} render(); });
+}
+
+/* ---- home ---- */
+VIEWS.home = () => {
+  const all = visitsOf(), done = all.filter(v => v.status === "done"), drafts = all.filter(v => v.status !== "done"), acts = Object.values(S.actions), open = acts.filter(a => a.status !== "Closed"), over = open.filter(a => a.due && a.due < today());
+  const avg = done.length ? done.reduce((a, v) => a + scoreOf(v).overall, 0) / done.length : null;
+  return `<button class="btn" id="hmNew" style="font-size:1.1rem">+ Start a store visit</button>
+    <div class="kpis"><div class="kpi"><b class="num">${done.length}</b><span>visits completed</span></div><div class="kpi"><b class="num">${pct(avg)}</b><span>average score</span></div><div class="kpi"><b class="num" style="color:${over.length ? "var(--bad)" : "inherit"}">${open.length}</b><span>open actions${over.length ? ` · ${over.length} overdue` : ""}</span></div></div>
+    ${drafts.length ? `<div class="sec"><h2>Visits in progress</h2></div><div class="stack">${drafts.map(v => { const sc = scoreOf(v); return `<button class="task due" data-open="${esc(v.id)}"><span class="grow"><b>${esc((store(v.store) || {}).name || "Store")}</b><small>${fmtD(v.date)} · ${sc.done} of ${sc.total} answered</small></span><span class="chip warn">Continue</span></button>`; }).join("")}</div>` : ""}
+    <div class="sec"><h2>Stores</h2><span>${stores().length}</span></div>
+    <div class="list">${stores().map(s => { const vs = visitsOf(s.id).filter(v => v.status === "done"), last = vs[0], sc = last ? scoreOf(last) : null, prev = vs[1] ? scoreOf(vs[1]).overall : null, o = Object.values(S.actions).filter(a => a.store === s.id && a.status !== "Closed").length;
+      return `<div class="row"><span class="grow"><b>${esc(s.name)}</b><div class="small muted">${last ? `Last visit ${fmtD(last.date)}` : "Not visited yet"}${o ? ` · ${o} open action${o > 1 ? "s" : ""}` : ""}</div></span>${sc ? `<span class="band ${band(sc.overall)[1]} num">${pct(sc.overall)}</span>${prev !== null ? `<span class="small num" style="color:var(--${sc.overall >= prev ? "ok" : "bad"})">${sc.overall >= prev ? "▲" : "▼"} ${Math.abs(Math.round((sc.overall - prev) * 100))}</span>` : ""}` : ""}</div>`; }).join("") || `<div class="muted">No stores yet. Add one under Stores.</div>`}</div>
+    <div class="sec"><h2>Completed visits</h2></div>
+    <div class="list">${done.slice(0, 40).map(v => { const sc = scoreOf(v); return `<button class="row" data-view="${esc(v.id)}" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>${esc((store(v.store) || {}).name || "Store")}</b><div class="small muted">${fmtD(v.date)} · ${esc(((S.cfg.visitors || {})[v.visitor] || {}).name || "")}</div></span><span class="band ${band(sc.overall)[1]} num">${pct(sc.overall)}</span></button>`; }).join("") || `<div class="muted">Nothing yet.</div>`}</div>`;
+};
+HOOKS.home = app => {
+  $("#hmNew", app).onclick = newVisitSheet;
+  app.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openVisit(b.dataset.open));
+  app.querySelectorAll("[data-view]").forEach(b => b.onclick = () => openVisit(b.dataset.view, "result"));
+};
+function newVisitSheet() {
+  const ss = stores(); if (!ss.length) { toast("Add a store first."); return go("stores"); }
+  const m = document.createElement("div"); m.className = "modal";
+  m.innerHTML = `<div class="sheet"><h2>New store visit</h2><div class="field"><label for="nvS">Store</label><select class="in" id="nvS">${ss.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("")}</select></div><div class="field"><label for="nvD">Visit date</label><input class="in" type="date" id="nvD" value="${today()}"></div><div class="row"><button class="btn alt grow" id="nvNo">Cancel</button><button class="btn grow" id="nvOk">Start</button></div></div>`;
+  document.body.appendChild(m); $("#nvNo", m).onclick = () => m.remove();
+  $("#nvOk", m).onclick = () => { const sid = $("#nvS", m).value, st = store(sid), id = "t" + Date.now().toString(36) + rid().slice(0, 3);
+    S.visits[id] = { store: sid, date: $("#nvD", m).value || today(), visitor: ME, storeManager: st.manager || "", retailOps: S.cfg.visitors[ME].name, prework: {}, ans: {}, summary: {}, status: "draft", at: Date.now() };
+    Data.saveVisit(id); m.remove(); openVisit(id); };
+}
+async function openVisit(id, step) { if (!S.visits[id]) return; W = { id, step: step || "info", q: 0 }; if (!step) { const v = S.visits[id], first = QS.findIndex(q => !(v.ans[q.id] && v.ans[q.id].v)); if (Object.keys(v.ans).length) { W.step = first < 0 ? "summary" : "q"; W.q = Math.max(0, first); } } R = { view: "visit" }; await Data.loadPhotos(id); window.scrollTo(0, 0); render(); }
+const closeVisit = () => { W = null; go("home"); };
+
+/* ===================== filling in a visit ===================== */
+let saveT = null;
+const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(() => { if (W) Data.saveVisit(W.id); }, 500); };
+const saveNow = () => { clearTimeout(saveT); if (W) Data.saveVisit(W.id); };
+function ensureAction(vid, q) {
+  const v = S.visits[vid]; if (actionsOf(vid).some(a => a.q === q.id)) return;
+  Data.saveAction("a" + Date.now().toString(36) + rid().slice(0, 3), { visit: vid, store: v.store, q: q.id, section: q.sec, text: q.text, owner: v.storeManager || "", priority: "Medium", due: addDays(v.date, 7), status: "Open", closed: "", at: Date.now() });
+}
+function setAnswer(q, val) {
+  const v = S.visits[W.id]; v.ans[q.id] = Object.assign({}, v.ans[q.id], { v: val, at: Date.now() });
+  const act = actionsOf(W.id).find(a => a.q === q.id);
+  if (val === "n") ensureAction(W.id, q); else if (act) Data.delAction(act.id);
+  saveNow();
+}
+function visitView(app) {
+  const v = S.visits[W.id]; if (!v) { W = null; return go("home"); }
+  const st = store(v.store) || { name: "Store" }, sc = scoreOf(v), locked = v.status === "done" && W.step !== "result";
+  const stepIdx = W.step === "info" ? 0 : W.step === "prework" ? 1 : W.step === "q" ? 2 + W.q : W.step === "summary" ? 2 + QS.length : 3 + QS.length, prog = stepIdx / (3 + QS.length);
+  let body = "", foot = "";
+  if (W.step === "info") {
+    body = `<div class="q">Visit details</div><div class="field"><label>Store</label><input class="in" value="${esc(st.name)}" disabled></div>
+      <div class="field"><label for="vfD">Visit date</label><input class="in" type="date" id="vfD" data-f="date" value="${esc(v.date)}"></div>
+      <div class="field"><label for="vfM">Store manager</label><input class="in" id="vfM" data-f="storeManager" value="${esc(v.storeManager)}"></div>
+      <div class="field"><label for="vfR">Retail operations</label><input class="in" id="vfR" data-f="retailOps" value="${esc(v.retailOps)}"></div>`;
+    foot = `<button class="btn alt" id="vBack" disabled>Back</button><button class="btn" id="vNext">Next</button>`;
+  } else if (W.step === "prework") {
+    body = `<div class="q">Pre-work: performance and profitability</div><p class="hint">Fill in what you have. Anything left empty stays empty on the report.</p>
+      ${METRICS.map((m, i) => { const p = (v.prework || {})["m" + i] || {}; return `<div class="card stack"><b>${esc(m)}</b><div class="row">${[["a", "Actual"], ["ly", "LY"], ["t", "Target"]].map(([k, l]) => `<div class="field grow" style="min-width:80px"><label for="pw${i}${k}">${l}</label><input class="in num" id="pw${i}${k}" inputmode="decimal" data-pw="m${i}:${k}" value="${esc(p[k] ?? "")}"></div>`).join("")}</div><input class="in" data-pw="m${i}:c" placeholder="Comment" value="${esc(p.c ?? "")}" aria-label="Comment"></div>`; }).join("")}`;
+    foot = `<button class="btn alt" id="vBack">Back</button><button class="btn" id="vNext">Next</button>`;
+  } else if (W.step === "q") {
+    const q = QS[W.q], a = v.ans[q.id] || {}, ph = photosOf(W.id, q.id), act = actionsOf(W.id).find(x => x.q === q.id);
+    const btn = (val, cls, lab) => `<button class="opt ${cls} ${a.v === val ? "on" : ""}" data-ans="${val}" style="min-height:76px;font-size:1.35rem">${lab}</button>`;
+    body = `<div class="muted num">${q.n} of ${QS.length} · ${esc(q.sec)}</div><div class="q ${q.text.length > 80 ? "long" : ""}">${esc(q.text)}</div>
+      <div class="opts" style="grid-template-columns:1fr 1fr 1fr">${btn("y", "yes", "Yes")}${btn("n", "no", "No")}${btn("na", "", "N.A")}</div>
+      <div class="field"><label for="vObs">Observation / evidence</label><textarea class="big" id="vObs" style="min-height:110px;font-size:1.1rem" placeholder="Type, or tap the microphone on your keyboard and speak">${esc(a.note || "")}</textarea></div>
+      <div class="stack" style="gap:8px"><div class="thumbs">${ph.map(p => `<div><img src="${p.data}" alt="Photo for question ${q.n}"><button data-delp="${esc(p.id)}" aria-label="Remove photo">✕</button></div>`).join("")}</div>
+        ${ph.length < MAX_PHOTOS ? `<label class="btn alt" style="display:flex;align-items:center;justify-content:center;cursor:pointer">+ Add a photo (${ph.length}/${MAX_PHOTOS})<input type="file" id="vPhoto" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0"></label>` : `<p class="small muted">${MAX_PHOTOS} photos added, which is the most for one question.</p>`}</div>
+      ${act ? `<div class="card stack" style="border-inline-start:6px solid var(--bad)"><b>Action for the store</b><div class="field"><label for="acT">Action / required standard</label><textarea class="in" id="acT" data-ac="text" rows="3">${esc(act.text)}</textarea></div>
+        <div class="row"><div class="field grow"><label for="acO">Owner</label><input class="in" id="acO" data-ac="owner" value="${esc(act.owner)}"></div><div class="field grow"><label for="acP">Priority</label><select class="in" id="acP" data-ac="priority">${PRIOS.map(p => `<option ${act.priority === p ? "selected" : ""}>${p}</option>`).join("")}</select></div></div>
+        <div class="field"><label for="acD">Due date</label><input class="in" type="date" id="acD" data-ac="due" value="${esc(act.due)}"></div></div>` : ""}`;
+    foot = `<button class="btn alt" id="vBack">Back</button><button class="btn" id="vNext">${a.v ? "Next" : "Skip for now"}</button>`;
+  } else if (W.step === "summary") {
+    body = `<div class="q">Visit summary and agreed priorities</div>${SUMMARY.map((s, i) => `<div class="field"><label for="sm${i}">${esc(s)}</label><textarea class="in" id="sm${i}" data-sm="s${i}" rows="3">${esc((v.summary || {})["s" + i] || "")}</textarea></div>`).join("")}`;
+    foot = `<button class="btn alt" id="vBack">Back</button><button class="btn" id="vNext">See the result</button>`;
+  } else {
+    const [bl, bc] = band(sc.overall), prev = prevVisit(v), psc = prev ? scoreOf(prev) : null, acts = actionsOf(W.id), left = QS.filter(q => !(v.ans[q.id] && v.ans[q.id].v));
+    const repeat = prev ? QS.filter(q => (v.ans[q.id] || {}).v === "n" && (prev.ans[q.id] || {}).v === "n") : [];
+    body = `<div class="card stack"><div class="row"><div class="grow"><div class="muted small">Overall visit score</div><div class="score num">${sc.any ? pct(sc.overall) : "–"}</div></div><div class="stack" style="gap:6px;align-items:flex-end">${sc.any ? `<span class="band ${bc}">${bl}</span>` : ""}${psc ? `<span class="small num" style="color:var(--${sc.overall >= psc.overall ? "ok" : "bad"})">${sc.overall >= psc.overall ? "▲" : "▼"} ${Math.abs(Math.round((sc.overall - psc.overall) * 100))} points since ${fmtD(prev.date)}</span>` : ""}</div></div>
+        <div class="row" style="gap:6px"><span class="chip ok num">${sc.y} Yes</span><span class="chip bad num">${sc.n} No</span><span class="chip num">${sc.done - sc.y - sc.n} N.A</span>${left.length ? `<span class="chip warn num">${left.length} not answered</span>` : ""}</div></div>
+      <div class="list">${SECTIONS.map(([name], i) => { const s = sc.secs[i], [l2, c2] = band(s.score); return `<button class="row" data-sec="${i}" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>${esc(name)}</b><div class="small muted num">${s.y} Yes · ${s.n} No · ${s.na} N.A${psc ? ` · last visit ${pct(psc.secs[i].score)}` : ""}</div></span>${s.y + s.n ? `<span class="band ${c2} num">${pct(s.score)}</span>` : `<span class="chip">–</span>`}</button>`; }).join("")}</div>
+      ${repeat.length ? `<div class="card stack" style="border-inline-start:6px solid var(--bad)"><b>Still a "No" since the last visit (${repeat.length})</b>${repeat.map(q => `<div class="small">Q${q.n}. ${esc(q.text)}</div>`).join("")}</div>` : ""}
+      ${left.length ? `<div class="banner">${left.length} question${left.length > 1 ? "s are" : " is"} not answered yet: ${left.slice(0, 12).map(q => "Q" + q.n).join(", ")}${left.length > 12 ? "…" : ""}</div>` : ""}
+      <div class="card stack"><b>Report</b><button class="btn" id="rpView">View the report</button><div class="row"><button class="btn alt grow" id="rpSave">Save as PDF</button><button class="btn alt grow" id="rpShare">Share the PDF</button></div>
+        <a class="btn alt" id="rpMail" style="text-align:center;text-decoration:none" href="#">E-mail the result to the store</a><p class="small muted" id="rpMsg">${st.email ? `Store e-mail: <b>${esc(st.email)}</b>` : "No e-mail saved for this store yet. Add it under Stores."}</p></div>
+      <div class="row">${v.status === "done" ? `<button class="btn alt grow" id="rpReopen">Reopen to edit</button>` : `<button class="btn grow" id="rpDone">Mark the visit complete</button>`}<button class="btn bad" id="rpDel">Delete</button></div>
+      <p class="small muted">${acts.length} action${acts.length === 1 ? "" : "s"} raised for the store. Follow them up on the Actions page.</p>`;
+    foot = `<button class="btn alt" id="vBack">Back</button><button class="btn" id="vClose">Done</button>`;
+  }
+  app.innerHTML = `<div class="wiz" style="position:static;min-height:100vh"><header><button class="pill" id="vX" aria-label="Close">✕</button><div class="t">${esc(st.name)}</div><span class="chip num">${sc.any ? pct(sc.overall) : "–"}</span><button class="pill" id="vIdx">Sections</button></header>
+    <div class="prog"><i style="width:${Math.round(prog * 100)}%"></i></div><div class="body">${v.status === "done" && W.step !== "result" ? `<div class="banner">This visit is marked complete. Changes you make here are still saved.</div>` : ""}${body}</div><footer style="position:sticky;bottom:0;background:var(--bg)">${foot}</footer></div>`;
+  const edit = fn => { fn(v); saveSoon(); };
+  $("#vX", app).onclick = () => { saveNow(); closeVisit(); };
+  $("#vIdx", app).onclick = sectionsSheet;
+  const order = ["info", "prework", "q", "summary", "result"];
+  const move = dir => { saveNow(); if (W.step === "q") { const nq = W.q + dir; if (nq >= 0 && nq < QS.length) { W.q = nq; window.scrollTo(0, 0); return render(); } }
+    const i = order.indexOf(W.step) + dir; if (i < 0 || i >= order.length) return; W.step = order[i]; if (W.step === "q") W.q = dir > 0 ? 0 : QS.length - 1; window.scrollTo(0, 0); render(); };
+  const nx = $("#vNext", app); if (nx) nx.onclick = () => move(1);
+  const bk = $("#vBack", app); if (bk) bk.onclick = () => move(-1);
+  const cl = $("#vClose", app); if (cl) cl.onclick = () => { saveNow(); closeVisit(); };
+  app.querySelectorAll("[data-f]").forEach(i => i.oninput = () => edit(x => { x[i.dataset.f] = i.value; }));
+  app.querySelectorAll("[data-pw]").forEach(i => i.oninput = () => edit(x => { const [m, k] = i.dataset.pw.split(":"); x.prework = x.prework || {}; x.prework[m] = Object.assign({}, x.prework[m], { [k]: i.value }); }));
+  app.querySelectorAll("[data-sm]").forEach(i => i.oninput = () => edit(x => { x.summary = x.summary || {}; x.summary[i.dataset.sm] = i.value; }));
+  if (W.step === "q") {
+    const q = QS[W.q];
+    app.querySelectorAll("[data-ans]").forEach(b => b.onclick = () => { const obs = $("#vObs", app); if (obs) v.ans[q.id] = Object.assign({}, v.ans[q.id], { note: obs.value }); setAnswer(q, b.dataset.ans); render(); });
+    $("#vObs", app).oninput = e => edit(x => { x.ans[q.id] = Object.assign({}, x.ans[q.id], { note: e.target.value }); });
+    const pi = $("#vPhoto", app); if (pi) pi.onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const data = await shrinkPhoto(f); await Data.savePhoto(W.id, "p" + Date.now().toString(36) + rid().slice(0, 3), { visit: W.id, q: q.id, data, at: Date.now() }); } catch (er) { toast(er.message || "The photo could not be added."); } render(); };
+    app.querySelectorAll("[data-delp]").forEach(b => b.onclick = () => { Data.delPhoto(W.id, b.dataset.delp); render(); });
+    app.querySelectorAll("[data-ac]").forEach(i => i.onchange = () => { const act = actionsOf(W.id).find(x => x.q === q.id); if (!act) return; const { id, ...rest } = act; rest[i.dataset.ac] = i.value; Data.saveAction(id, rest); });
+  }
+  if (W.step === "result") {
+    app.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { W.step = "q"; W.q = QS.findIndex(q => q.si === +b.dataset.sec); window.scrollTo(0, 0); render(); });
+    const msg = t => { $("#rpMsg", app).textContent = t; };
+    $("#rpView", app).onclick = async () => { msg("Building the report…"); try { showReport(await buildReport(W.id)); msg(""); } catch (e) { console.error(e); msg("The report could not be built: " + (e.message || e)); } };
+    const fileName = `Store Visit - ${st.name} - ${v.date}.pdf`.replace(/[\\/:*?"<>|]/g, " ");
+    const pdf = async () => { msg("Building the PDF…"); const blob = await pagesToPdf(await buildReport(W.id)); msg(""); return blob; };
+    $("#rpSave", app).onclick = async () => { try { downloadBlob(await pdf(), fileName); } catch (e) { console.error(e); msg("The PDF could not be built: " + (e.message || e)); } };
+    $("#rpShare", app).onclick = async () => { try { const blob = await pdf(), file = new File([blob], fileName, { type: "application/pdf" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Store Visit Report", text: mailText(W.id) }); } else { downloadBlob(blob, fileName); msg("This device cannot share files directly, so the PDF was saved instead. Attach it to your e-mail."); } }
+      catch (e) { if (e && e.name !== "AbortError") { console.error(e); msg("Sharing did not work: " + (e.message || e)); } } };
+    $("#rpMail", app).href = `mailto:${encodeURIComponent(st.email || "")}?subject=${encodeURIComponent(`Store Visit Report - ${st.name} - ${longD(v.date)}`)}&body=${encodeURIComponent(mailText(W.id))}`;
+    const dn = $("#rpDone", app); if (dn) dn.onclick = () => { v.status = "done"; v.doneAt = Date.now(); saveNow(); toast("Visit marked complete"); render(); };
+    const ro = $("#rpReopen", app); if (ro) ro.onclick = () => { v.status = "draft"; saveNow(); render(); };
+    $("#rpDel", app).onclick = () => ask("Delete this visit?", "The answers, photos and actions of this visit are removed. This cannot be undone.", "Delete", () => { const id = W.id; W = null; Data.delVisit(id); go("home"); }, true);
+  }
+}
+function sectionsSheet() {
+  const v = S.visits[W.id], sc = scoreOf(v), m = document.createElement("div"); m.className = "modal";
+  m.innerHTML = `<div class="sheet"><div class="row"><h2 class="grow">Go to</h2><button class="pill" id="ssX">✕</button></div><div class="list">
+    <button class="row" data-j="info" style="text-align:start;background:none;border:0;width:100%"><span class="grow"><b>Visit details</b></span></button><button class="row" data-j="prework" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>Pre-work</b></span></button>
+    ${SECTIONS.map(([name], i) => `<button class="row" data-js="${i}" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>${i + 2}. ${esc(name)}</b></span><span class="chip num ${sc.secs[i].done === sc.secs[i].total ? "ok" : ""}">${sc.secs[i].done}/${sc.secs[i].total}</span></button>`).join("")}
+    <button class="row" data-j="summary" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>9. Visit summary</b></span></button><button class="row" data-j="result" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>Result and report</b></span></button></div></div>`;
+  document.body.appendChild(m); $("#ssX", m).onclick = () => m.remove();
+  const jump = fn => { saveNow(); fn(); m.remove(); window.scrollTo(0, 0); render(); };
+  m.querySelectorAll("[data-j]").forEach(b => b.onclick = () => jump(() => { W.step = b.dataset.j; }));
+  m.querySelectorAll("[data-js]").forEach(b => b.onclick = () => jump(() => { W.step = "q"; const first = QS.findIndex(q => q.si === +b.dataset.js && !(v.ans[q.id] && v.ans[q.id].v)); W.q = first >= 0 ? first : QS.findIndex(q => q.si === +b.dataset.js); }));
+}
+function mailText(vid) {
+  const v = S.visits[vid], st = store(v.store) || {}, sc = scoreOf(v), acts = actionsOf(vid), L = [];
+  L.push(`Store Visit Report - ${st.name || ""}`, `Visit date: ${longD(v.date)}`, `Retail operations: ${v.retailOps || ""}`, "", `OVERALL VISIT SCORE: ${pct(sc.overall)} (${band(sc.overall)[0]})`, "");
+  SECTIONS.forEach(([name], i) => { const s = sc.secs[i]; L.push(`${name}: ${s.y + s.n ? pct(s.score) + " (" + band(s.score)[0] + ")" : "not scored"}`); });
+  if (acts.length) { L.push("", "ACTIONS AGREED"); acts.forEach((a, i) => L.push(`${i + 1}. ${a.text} | Owner: ${a.owner || "-"} | ${a.priority} | Due ${fmtD(a.due)}`)); }
+  SUMMARY.forEach((s, i) => { const t = (v.summary || {})["s" + i]; if (t) L.push("", s + ": " + t); });
+  L.push("", "The full report with photos is attached as a PDF.");
+  return L.join("\n");
+}
+function downloadBlob(blob, name) { try { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast("PDF saved"); } catch (e) { toast("Saving files is not available here."); } }
+
+/* ===================== actions ===================== */
+VIEWS.actions = () => {
+  const f = R.f || "open", sid = R.sid || "", all = Object.entries(S.actions).map(([id, a]) => ({ id, ...a })).filter(a => (!sid || a.store === sid) && (f === "all" || a.status !== "Closed")).sort((a, b) => (a.due || "9").localeCompare(b.due || "9"));
+  return `<h1>Action plan</h1><div class="row"><select class="in grow" id="acS"><option value="">All stores</option>${stores(true).map(s => `<option value="${esc(s.id)}" ${sid === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select>
+    <button class="chip ${f === "open" ? "acc" : ""}" data-af="open" style="border:0;padding:9px 14px">Not closed</button><button class="chip ${f === "all" ? "acc" : ""}" data-af="all" style="border:0;padding:9px 14px">All</button></div>
+    <div class="stack">${all.map(a => { const q = QS.find(x => x.id === a.q) || { n: "" }, v = S.visits[a.visit] || {}, over = a.status !== "Closed" && a.due && a.due < today();
+      return `<div class="card stack" data-act="${esc(a.id)}" style="border-inline-start:6px solid var(--${a.status === "Closed" ? "ok" : over ? "bad" : "warn"})"><div class="row"><span class="grow small muted">${esc((store(a.store) || {}).name || "")} · visit ${fmtD(v.date)} · Q${q.n} · ${esc(a.section)}</span>${over ? `<span class="chip bad">Overdue</span>` : ""}</div>
+        <textarea class="in" data-k="text" rows="2" aria-label="Action">${esc(a.text)}</textarea>
+        <div class="row"><div class="field grow"><label>Owner</label><input class="in" data-k="owner" value="${esc(a.owner)}"></div><div class="field"><label>Priority</label><select class="in" data-k="priority">${PRIOS.map(p => `<option ${a.priority === p ? "selected" : ""}>${p}</option>`).join("")}</select></div></div>
+        <div class="row"><div class="field grow"><label>Due date</label><input class="in" type="date" data-k="due" value="${esc(a.due)}"></div><div class="field grow"><label>Status</label><select class="in" data-k="status">${STATI.map(p => `<option ${a.status === p ? "selected" : ""}>${p}</option>`).join("")}</select></div></div>
+        ${a.status === "Closed" ? `<span class="small muted">Closed on ${fmtD(a.closed)}</span>` : ""}</div>`; }).join("") || `<div class="card muted">No actions here. Every "No" in a visit creates one.</div>`}</div>`;
+};
+HOOKS.actions = app => {
+  $("#acS", app).onchange = e => { R.sid = e.target.value; render(); };
+  app.querySelectorAll("[data-af]").forEach(b => b.onclick = () => { R.f = b.dataset.af; render(); });
+  app.querySelectorAll("[data-act]").forEach(card => card.querySelectorAll("[data-k]").forEach(i => i.onchange = () => { const a = clone(S.actions[card.dataset.act]); a[i.dataset.k] = i.value; if (i.dataset.k === "status") a.closed = i.value === "Closed" ? today() : ""; Data.saveAction(card.dataset.act, a); }));
+};
+
+/* ===================== stores and visitors ===================== */
+VIEWS.stores = () => `<h1>Stores</h1><p class="muted">Add a store whenever a new one opens. The e-mail is used when you send the report.</p>
+  <div class="list">${stores(true).map(s => `<button class="row" data-st="${esc(s.id)}" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>${esc(s.name)}</b><div class="small muted">${esc([s.code, s.manager, s.email].filter(Boolean).join(" · "))}${s.active === false ? " · not in use" : ""}</div></span><span class="chip">Edit</span></button>`).join("") || `<div class="muted">No stores yet.</div>`}</div>
+  <button class="btn soft" id="stAdd">+ Add a store</button>
+  <div class="sec"><h2>Visitors</h2></div><div class="list">${Object.entries(S.cfg.visitors || {}).map(([id, v]) => `<div class="row"><input class="in grow" data-vn="${esc(id)}" value="${esc(v.name)}" aria-label="Visitor name"><label class="row small" style="gap:6px"><input type="checkbox" data-va="${esc(id)}" ${v.active !== false ? "checked" : ""} ${id === ME ? "disabled" : ""} style="width:20px;height:20px">In use</label></div>`).join("")}
+  <div class="row"><input class="in grow" id="vnNew" placeholder="Name of another visitor"><button class="btn sm" id="vnAdd">Add</button></div></div>`;
+HOOKS.stores = app => {
+  const save = fn => { const c = clone(S.cfg); fn(c); Data.saveCfg(c); render(); };
+  app.querySelectorAll("[data-st]").forEach(b => b.onclick = () => storeSheet(b.dataset.st)); $("#stAdd", app).onclick = () => storeSheet(null);
+  app.querySelectorAll("[data-vn]").forEach(i => i.onchange = () => { if (i.value.trim()) save(c => { c.visitors[i.dataset.vn].name = i.value.trim(); }); });
+  app.querySelectorAll("[data-va]").forEach(i => i.onchange = () => save(c => { c.visitors[i.dataset.va].active = i.checked; }));
+  $("#vnAdd", app).onclick = () => { const n = $("#vnNew", app).value.trim(); if (n) save(c => { c.visitors["v" + rid()] = { name: n, active: true }; }); };
+};
+function storeSheet(id) {
+  const s = id ? store(id) : { name: "", code: "", manager: "", email: "", active: true }, m = document.createElement("div"); m.className = "modal";
+  m.innerHTML = `<div class="sheet"><h2>${id ? "Edit store" : "New store"}</h2><div class="field"><label for="ssN">Store name</label><input class="in" id="ssN" value="${esc(s.name)}"></div>
+    <div class="row"><div class="field grow"><label for="ssC">Store code</label><input class="in" id="ssC" value="${esc(s.code || "")}"></div><div class="field grow"><label for="ssM">Store manager</label><input class="in" id="ssM" value="${esc(s.manager || "")}"></div></div>
+    <div class="field"><label for="ssE">Store e-mail</label><input class="in" id="ssE" type="email" value="${esc(s.email || "")}"></div>
+    <label class="row"><input type="checkbox" id="ssA" ${s.active !== false ? "checked" : ""} style="width:22px;height:22px"><span>In use</span></label><p class="small" id="ssMsg" style="color:var(--bad)"></p>
+    <div class="row"><button class="btn alt grow" id="ssNo">Cancel</button><button class="btn grow" id="ssOk">Save</button></div></div>`;
+  document.body.appendChild(m); $("#ssNo", m).onclick = () => m.remove();
+  $("#ssOk", m).onclick = () => { const name = $("#ssN", m).value.trim(); if (!name) { $("#ssMsg", m).textContent = "The store name is needed."; return; }
+    const c = clone(S.cfg); c.stores = c.stores || {}; c.stores[id || "s" + rid()] = { name, code: $("#ssC", m).value.trim(), manager: $("#ssM", m).value.trim(), email: $("#ssE", m).value.trim(), active: $("#ssA", m).checked }; Data.saveCfg(c); m.remove(); render(); };
+}
+
+/* ===================== the report: same order as the Excel form, plus photos and the action plan ===================== */
+const RF = 'Arial, "Helvetica Neue", Helvetica, sans-serif';
+function loadImg(src) { return new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; }); }
+async function buildReport(vid) {
+  const v = S.visits[vid], st = store(v.store) || {}, sc = scoreOf(v), acts = actionsOf(vid), ph = await Data.loadPhotos(vid);
+  const PW = 595, PH = 842, M = 30, K = 2.2, IW = PW - 2 * M, pages = []; let c = null, y = 0;
+  const logo = await loadImg("logo.png");
+  const newPage = () => { const cv = document.createElement("canvas"); cv.width = Math.round(PW * K); cv.height = Math.round(PH * K); c = cv.getContext("2d"); c.scale(K, K); c.fillStyle = "#fff"; c.fillRect(0, 0, PW, PH); pages.push(cv); y = M; };
+  const need = h => { if (!c || y + h > PH - M - 16) newPage(); };
+  const font = (z, b) => `${b ? "bold " : ""}${z}px ${RF}`;
+  const wrap = (t, f, w) => { c.font = f; const out = []; String(t ?? "").split("\n").forEach(par => { let cur = ""; par.split(/\s+/).forEach(wd => { const x = cur ? cur + " " + wd : wd; if (c.measureText(x).width <= w || !cur) cur = x; else { out.push(cur); cur = wd; } }); out.push(cur); }); return out.length ? out : [""]; };
+  const bar = t => { need(22 + 30); c.fillStyle = "#111"; c.fillRect(M, y, IW, 20); c.fillStyle = "#fff"; c.font = font(9.5, 1); c.textBaseline = "middle"; c.textAlign = "left"; c.fillText(t, M + 6, y + 10.5); y += 20; };
+  /* one table row; cells: {w, t, align, bold, color, fill} */
+  const row = (cells, o = {}) => { const size = o.size || 8, lh = size * 1.28, pad = 3.5; const lines = cells.map(cl => wrap(cl.t, font(size, cl.bold || o.bold), cl.w - pad * 2)); const h = Math.max(o.minH || 0, Math.max(...lines.map(l => l.length)) * lh + pad * 2);
+    need(h); let x = M; cells.forEach((cl, i) => { if (cl.fill || o.fill) { c.fillStyle = cl.fill || o.fill; c.fillRect(x, y, cl.w, h); } c.strokeStyle = "#555"; c.lineWidth = 0.5; c.strokeRect(x, y, cl.w, h);
+      c.font = font(size, cl.bold || o.bold); c.fillStyle = cl.color || o.color || "#111"; c.textBaseline = "middle"; const al = cl.align || "left"; c.textAlign = al; const tx2 = al === "left" ? x + pad : al === "right" ? x + cl.w - pad : x + cl.w / 2; let ty = y + (h - lines[i].length * lh) / 2 + lh / 2; lines[i].forEach(l => { c.fillText(l, tx2, ty); ty += lh; }); x += cl.w; }); y += h; };
+  const bandCol = s => (s >= 0.9 ? "#1f7a45" : s >= 0.75 ? "#a15c00" : "#b3261e");
+  const pc1 = (a, b) => { const x = num(a), z = num(b); if (x === null || z === null || !z) return ""; const r = x / z - 1; return (r > 0 ? "+" : "") + (r * 100).toFixed(1) + "%"; };
+
+  newPage();
+  c.fillStyle = "#111"; c.font = font(18, 1); c.textBaseline = "middle"; c.textAlign = "left"; c.fillText("STORE VISIT REPORT", M, y + 14); if (logo) c.drawImage(logo, PW - M - 30, y - 2, 30, 30); y += 36;
+  const [ol] = band(sc.overall);
+  row([{ w: 70, t: "Store:", bold: 1, fill: "#eee" }, { w: 180, t: [st.name, st.code].filter(Boolean).join(" · ") }, { w: 70, t: "Visit Date:", bold: 1, fill: "#eee" }, { w: 95, t: longD(v.date) }, { w: 70, t: "Overall Score:", bold: 1, fill: "#eee" }, { w: IW - 485, t: sc.any ? pct(sc.overall) : "–", bold: 1, align: "center", color: sc.any ? bandCol(sc.overall) : "#111" }], { size: 8.5, minH: 20 });
+  row([{ w: 70, t: "Store Manager:", bold: 1, fill: "#eee" }, { w: 180, t: v.storeManager }, { w: 95, t: "Retail Operations:", bold: 1, fill: "#eee" }, { w: IW - 345, t: v.retailOps }], { size: 8.5, minH: 20 }); y += 10;
+
+  bar("PRE-WORK | PERFORMANCE & PROFITABILITY");
+  const pw = [150, 62, 62, 48, 62, 48, IW - 432];
+  row(["Metric", "Actual", "LY", "%", "Target", "%", "Comments"].map((t, i) => ({ w: pw[i], t, align: i && i < 6 ? "center" : "left" })), { bold: 1, fill: "#e6e6e6" });
+  METRICS.forEach((m, i) => { const p = (v.prework || {})["m" + i] || {}; row([{ w: pw[0], t: m }, { w: pw[1], t: p.a, align: "center" }, { w: pw[2], t: p.ly, align: "center" }, { w: pw[3], t: pc1(p.a, p.ly), align: "center" }, { w: pw[4], t: p.t, align: "center" }, { w: pw[5], t: pc1(p.a, p.t), align: "center" }, { w: pw[6], t: p.c }]); }); y += 10;
+
+  bar("1. SCORE SUMMARY");
+  const sw = [IW - 240, 90, 150];
+  row([{ w: sw[0], t: "Section" }, { w: sw[1], t: "Score", align: "center" }, { w: sw[2], t: "Status", align: "center" }], { bold: 1, fill: "#e6e6e6" });
+  SECTIONS.forEach(([name], i) => { const s = sc.secs[i], has = s.y + s.n > 0; row([{ w: sw[0], t: name }, { w: sw[1], t: has ? pct(s.score) : "–", align: "center", bold: 1 }, { w: sw[2], t: has ? band(s.score)[0] : "–", align: "center", bold: 1, color: has ? bandCol(s.score) : "#777" }], { size: 8.5 }); });
+  row([{ w: sw[0], t: "OVERALL VISIT SCORE", bold: 1 }, { w: sw[1], t: sc.any ? pct(sc.overall) : "–", align: "center", bold: 1 }, { w: sw[2], t: sc.any ? ol : "–", align: "center", bold: 1, color: sc.any ? bandCol(sc.overall) : "#777" }], { size: 9, fill: "#f0f0f0", minH: 20 });
+  need(14); c.font = font(7); c.fillStyle = "#555"; c.textAlign = "left"; c.textBaseline = "middle"; c.fillText("Scoring guide: On Point 90%+ | Focus Required 75% to 89.9% | Immediate Action below 75%", M, y + 8); y += 20;
+
+  const qw = [22, 215, 36, IW - 318, 45];
+  SECTIONS.forEach(([name], si) => {
+    bar(`${si + 2}. ${name.toUpperCase()}`);
+    row(["#", "Assessment Question", "Score", "Observation / Evidence", "Action Ref"].map((t, i) => ({ w: qw[i], t, align: i === 1 || i === 3 ? "left" : "center" })), { bold: 1, fill: "#e6e6e6", size: 7.5 });
+    QS.filter(q => q.si === si).forEach(q => { const a = v.ans[q.id] || {}, n = photosOf(vid, q.id).length; const sv = a.v === "y" ? "Yes" : a.v === "n" ? "No" : a.v === "na" ? "N.A" : "";
+      row([{ w: qw[0], t: q.n, align: "center" }, { w: qw[1], t: q.text }, { w: qw[2], t: sv, align: "center", bold: 1, color: a.v === "y" ? "#1f7a45" : a.v === "n" ? "#b3261e" : "#555" }, { w: qw[3], t: [a.note, n ? `[${n} photo${n > 1 ? "s" : ""} on the photo pages]` : ""].filter(Boolean).join("  ") }, { w: qw[4], t: actionRef(vid, q.id), align: "center" }], { size: 7.8, minH: 18 }); });
+    const s = sc.secs[si]; row([{ w: qw[0] + qw[1], t: `${name} Section Score`, bold: 1 }, { w: qw[2], t: s.y + s.n ? pct(s.score) : "–", align: "center", bold: 1 }, { w: qw[3] + qw[4], t: `${s.y} Yes · ${s.n} No · ${s.na} N.A`, color: "#555" }], { size: 8, fill: "#f0f0f0" }); y += 10;
+  });
+
+  bar("9. VISIT SUMMARY & AGREED PRIORITIES");
+  SUMMARY.forEach((s, i) => row([{ w: 150, t: s, bold: 1, fill: "#eee" }, { w: IW - 150, t: (v.summary || {})["s" + i] || "" }], { size: 8.2, minH: 26 })); y += 10;
+
+  bar("STORE VISIT ACTION PLAN");
+  const aw = [26, 92, IW - 398, 80, 52, 62, 86];
+  row(["Ref", "Section", "Action / Required Standard", "Owner", "Priority", "Due Date", "Status"].map((t, i) => ({ w: aw[i], t, align: i === 2 || i === 1 || i === 3 ? "left" : "center" })), { bold: 1, fill: "#e6e6e6", size: 7.5 });
+  if (!acts.length) row([{ w: IW, t: "No actions were raised on this visit.", color: "#555" }]);
+  acts.forEach((a, i) => row([{ w: aw[0], t: i + 1, align: "center" }, { w: aw[1], t: a.section }, { w: aw[2], t: a.text }, { w: aw[3], t: a.owner }, { w: aw[4], t: a.priority, align: "center", bold: 1, color: a.priority === "Critical" ? "#b3261e" : a.priority === "High" ? "#a15c00" : "#111" }, { w: aw[5], t: fmtD(a.due), align: "center" }, { w: aw[6], t: a.status + (a.status === "Closed" && a.closed ? " " + fmtD(a.closed) : ""), align: "center" }], { size: 7.8, minH: 18 }));
+
+  const shots = QS.flatMap(q => photosOf(vid, q.id).map(p => ({ q, p })));
+  if (shots.length) {
+    newPage(); bar("PHOTOS"); y += 8; const cols = 3, gap = 9, bw = (IW - gap * (cols - 1)) / cols, bh = bw * 0.75, cap = 24;
+    for (let i = 0; i < shots.length; i += cols) { need(bh + cap + 8); const y0 = y;
+      for (let k = 0; k < cols && i + k < shots.length; k++) { const { q, p } = shots[i + k], x = M + k * (bw + gap), im = await loadImg(p.data);
+        c.fillStyle = "#f2f2f2"; c.fillRect(x, y0, bw, bh); if (im) { const r = Math.min(bw / im.width, bh / im.height), w2 = im.width * r, h2 = im.height * r; c.drawImage(im, x + (bw - w2) / 2, y0 + (bh - h2) / 2, w2, h2); }
+        c.strokeStyle = "#999"; c.lineWidth = 0.5; c.strokeRect(x, y0, bw, bh);
+        const a = (v.ans[q.id] || {}).v; c.font = font(7.5, 1); c.fillStyle = a === "n" ? "#b3261e" : a === "y" ? "#1f7a45" : "#111"; c.textAlign = "left"; c.textBaseline = "middle"; c.fillText(`Q${q.n} · ${a === "y" ? "Yes" : a === "n" ? "No" : a === "na" ? "N.A" : ""}`, x, y0 + bh + 8);
+        const l = wrap(q.text, font(6.8), bw); c.font = font(6.8); c.fillStyle = "#444"; c.fillText(l[0] + (l.length > 1 ? "…" : ""), x, y0 + bh + 17, bw); }
+      y = y0 + bh + cap + 6; }
+  }
+  pages.forEach((cv, i) => { const x = cv.getContext("2d"); x.font = font(7); x.fillStyle = "#666"; x.textBaseline = "middle"; x.textAlign = "left"; x.fillText(`Store Visit Report · ${st.name || ""} · ${longD(v.date)}`, M, PH - 16); x.textAlign = "right"; x.fillText(`Page ${i + 1} of ${pages.length}`, PW - M, PH - 16); });
+  return pages;
+}
+async function pagesToPdf(pages) {
+  const { jsPDF } = window.jspdf; let doc = null;
+  for (const cv of pages) { if (!doc) doc = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait", compress: true }); else doc.addPage("a4", "portrait"); doc.addImage(cv.toDataURL("image/jpeg", 0.88), "JPEG", 0, 0, 595.28, 841.89, undefined, "FAST"); await new Promise(r => setTimeout(r, 0)); }
+  return doc.output("blob");
+}
+function showReport(pages) {
+  const m = document.createElement("div"); m.className = "modal";
+  m.innerHTML = `<div class="sheet" style="max-height:96%"><div class="row"><h2 class="grow num">${pages.length} page${pages.length === 1 ? "" : "s"}</h2><button class="pill" id="rvX">✕</button></div><div class="pages" id="rvP"></div></div>`;
+  document.body.appendChild(m); $("#rvX", m).onclick = () => m.remove();
+  pages.forEach(cv => { const im = new Image(); im.alt = "Report page"; im.src = cv.toDataURL("image/jpeg", 0.8); $("#rvP", m).appendChild(im); });
+}
+/* ===================== start ===================== */
+(function boot() { try { ME = localStorage.getItem("sv-me") || null; } catch (e) {} render(); dataInit(); })();
+
+</script>
+</body>
+</html>
