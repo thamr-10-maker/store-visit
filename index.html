@@ -126,7 +126,9 @@ table.t{width:100%;border-collapse:collapse;font-size:.9rem} table.t td,table.t 
 /* ---- On look: black and white, the black band at the top carries the logo ---- */
 h1{font-size:1.7rem;font-weight:800;letter-spacing:-.025em} h2{font-size:1.2rem;font-weight:700;letter-spacing:-.015em} h3{font-weight:700}
 .top{background:#000;color:#fff;border-bottom:1px solid #2a2a2a;padding:10px 16px;min-height:60px}
-.top .logo{width:30px;height:30px;flex:0 0 auto;display:block}
+.logo{object-fit:contain}
+.top .logo{width:auto;height:32px;flex:0 0 auto;display:block}
+.qt{font-size:1.05rem;font-weight:700;line-height:1.35;letter-spacing:-.005em}
 .top .who b{font-weight:700;letter-spacing:-.01em} .top .who span{color:#b9b9b4}
 .top .pill{background:transparent;color:#fff;border-color:#5a5a5a}
 .btn{border-radius:999px;font-weight:700;letter-spacing:-.005em}
@@ -150,7 +152,7 @@ nav.tabs button{position:relative} nav.tabs button.on{color:var(--ink)} nav.tabs
 .hero .muted{color:#b9b9b4} .hero .score{font-size:4rem;font-weight:800;letter-spacing:-.04em}
 .hero .chip{background:#2a2a2a;color:#fff}
 .brand{display:flex;flex-direction:column;align-items:center;gap:14px;background:#000;color:#fff;border-radius:var(--r);padding:28px 18px;text-align:center}
-.brand img{width:54px;height:54px} .brand b{font-size:1.5rem;font-weight:800;letter-spacing:-.025em} .brand span{color:#b9b9b4;font-size:.9rem}
+.brand img{width:auto;height:58px} .brand b{font-size:1.5rem;font-weight:800;letter-spacing:-.025em} .brand span{color:#b9b9b4;font-size:.9rem}
 summary{font-weight:700;cursor:pointer}
 @media (max-width:400px){.kpis{grid-template-columns:1fr 1fr 1fr}.wiz .q{font-size:1.35rem}}
 
@@ -182,8 +184,9 @@ const SECTIONS = [
   ["Operations & BOH", ["Daily and weekly checklists complete, current and signed", "BOH clean and free from dust, waste and unnecessary clutter", "BOH pathways clear and safe for team movement", "Defined zones in place for footwear, apparel and accessories", "Separate zones maintained for receiving, returns, backstock and new arrivals", "Footwear organised by model, size and colour", "Footwear boxes aligned consistently and sizes arranged in the required Z-flow", "Apparel organised by category, size and colour", "Apparel clearly labelled and stored to the required folding standard?", "Shelves, boxes and stockroom zones clearly and consistently labelled", "Shopfloor products link clearly to the correct stockroom rack locations", "Receiving, return and replenishment areas tidy and controlled"]],
   ["Compliance & Safety", ["Immediate life-safety, security or operational hazards in the store", "Emergency exits, access routes and fire equipment physically unobstructed", "Stockroom racking, ladders and high-level storage safe and correctly positioned", "Electrical panels, sockets, cables and equipment free from visible safety risks", "Consumer and team areas free from slip, trip and obstruction hazards", "Previously reported incidents, hazards or safety actions been closed or actively followed up"]],
 ];
-const QS = []; SECTIONS.forEach(([name, list], si) => list.forEach(text => QS.push({ id: "q" + (QS.length + 1), n: QS.length + 1, si, sec: name, text })));
-const METRICS = ["Revenue", "Conversion", "ATV", "UPT", "Productivity (Revenue / FOH sqm / Month)", "Traffic", "Mystery Shopper", "Shrink%", "EBIT %"];
+const QS = []; SECTIONS.forEach(([name, list], si) => list.forEach(text => QS.push({ id: "q" + (QS.length + 1), n: QS.length + 1, si, sec: name, raw: text, text: text.replace(/[\s.?]+$/, "") + "?" })));
+/* pre-work metrics: [stored key, label]. Keys never change, so a metric can be removed (m3 was UPT) without moving the others. */
+const METRICS = [["m0", "Revenue"], ["m1", "Conversion"], ["m2", "ATV"], ["m4", "Productivity (Revenue / FOH sqm / Month)"], ["m5", "Traffic"], ["m6", "Mystery Shopper"], ["m7", "Shrink%"], ["m8", "EBIT %"]];
 const SUMMARY = ["Key Strengths", "Key Opportunities", "Immediate Actions Agreed", "Support Required", "Store Manager / Leader Feedback", "Follow-up Required"];
 const PRIOS = ["Critical", "High", "Medium", "Low"], STATI = ["Open", "In Progress", "Closed", "On Hold"];
 const MAX_PHOTOS = 3;
@@ -257,11 +260,13 @@ const visitsOf = sid => Object.entries(S.visits).map(([id, v]) => ({ id, ...v })
 const actionsOf = vid => Object.entries(S.actions).map(([id, a]) => ({ id, ...a })).filter(a => a.visit === vid).sort((a, b) => +a.q.slice(1) - +b.q.slice(1));
 const actionRef = (vid, q) => { const i = actionsOf(vid).findIndex(a => a.q === q); return i < 0 ? "" : String(i + 1); };
 const pwOf = vid => Object.assign({}, (S.visits[vid] || {}).prework, S.prework[vid]);          // pre-work: the store's numbers, or the visitor's own
-const pwCount = vid => METRICS.filter((m, i) => { const p = pwOf(vid)["m" + i]; return p && String(p.a ?? "").trim() !== ""; }).length;
+const pwCount = vid => METRICS.filter(([mk]) => { const p = pwOf(vid)[mk]; return p && String(p.a ?? "").trim() !== ""; }).length;
 const pinOf = s => (s && s.pin) || "";
 const newPin = () => String(Math.floor(1000 + Math.random() * 9000));
 const storeLink = sid => location.origin + location.pathname + "?store=" + encodeURIComponent(sid);
 const actPhotos = (vid, aid) => Object.entries(S.photos[vid] || {}).map(([id, p]) => ({ id, ...p })).filter(p => p.a === aid).sort((a, b) => a.at - b.at);
+/* opens a new message in Outlook: the Outlook app on a phone, Outlook on the web on a computer */
+function outlookCompose(to, subject, body) { const q = `to=${encodeURIComponent(to || "")}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) location.href = "ms-outlook://compose?" + q; else window.open("https://outlook.office.com/mail/deeplink/compose?" + q, "_blank", "noopener"); }
 async function shareText(text, title) { try { if (navigator.share) { await navigator.share({ title, text }); return; } } catch (e) { if (e && e.name === "AbortError") return; } try { await navigator.clipboard.writeText(text); toast("Copied. Paste it in a message to the store."); } catch (e) { ask(title, text, "OK", () => {}); } }
 const prevVisit = v => visitsOf(v.store).filter(x => x.id !== v.id && x.status === "done" && (x.date + x.at) < (v.date + v.at))[0] || null;
 
@@ -290,7 +295,7 @@ function render() {
   if (!ME || !visitors().some(v => v.id === ME)) { const vs = visitors(); if (vs.length === 1) ME = vs[0].id; else return whoView(app); }
   if (W && R.view === "visit") return visitView(app);
   const me = S.cfg.visitors[ME];
-  app.innerHTML = `<div class="top"><img class="logo" src="logo-w.png" alt="On"><div class="who"><b>Store Visit</b><span>${esc(me.name)}${S.mode === "local" ? " · this device only" : ""}</span></div>${visitors().length > 1 ? `<button class="pill" id="tpWho">Change visitor</button>` : ""}</div>
+  app.innerHTML = `<div class="top"><img class="logo" src="logo-w.png" alt="On"><div class="who"><b>Store Visit</b><span>${esc([me.name, me.title].filter(Boolean).join(" · "))}${S.mode === "local" ? " · this device only" : ""}</span></div>${visitors().length > 1 ? `<button class="pill" id="tpWho">Change visitor</button>` : ""}</div>
     <main>${S.mode === "local" ? `<div class="banner">Not connected to the shared data. What you enter is kept on this device only.</div>` : ""}${(VIEWS[R.view] || VIEWS.home)()}</main>
     <nav class="tabs"><div>${TABS.map(([v, l]) => `<button data-go="${v}" class="${R.view === v || (v === "home" && !TABS.some(t => t[0] === R.view)) ? "on" : ""}"><span style="font-size:.85rem">${l}</span></button>`).join("")}</div></nav>`;
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
@@ -301,7 +306,20 @@ const VIEWS = {}, HOOKS = {};
 /* one-time link: clears everything and loads a list of stores (the list travels in the link, not in the code) */
 let LOAD = null; try { if (location.hash.startsWith("#load=")) LOAD = JSON.parse(decodeURIComponent(location.hash.slice(6))); } catch (e) { LOAD = null; }
 window.addEventListener("hashchange", () => { if (location.hash.startsWith("#load=")) location.reload(); });
+/* a second kind of link only renames and adds stores; nothing is deleted */
+function updateView(app) {
+  const list = LOAD.stores || [], cur = stores(true), norm = x => String(x || "").trim().toLowerCase();
+  const plan = list.map(x => { const hit = cur.find(c => (x.email && norm(c.email) === norm(x.email)) || norm(c.name) === norm(x.name)); return { x, hit }; });
+  app.innerHTML = `<main><div class="card stack"><h1>Update the store list</h1><p>Nothing is deleted. Visits, actions and PINs stay as they are.</p>
+    <div class="list">${plan.map(({ x, hit }) => `<div class="row"><span class="grow"><b>${esc(x.name)}</b><div class="small muted">${hit ? (hit.name === x.name ? "Already there" : "Renamed from " + esc(hit.name)) : "New store"}</div></span><span class="chip ${hit ? "" : "ok"}">${hit ? (hit.name === x.name ? "Same" : "Rename") : "Add"}</span></div>`).join("")}</div>
+    <button class="btn" id="ldGo">Update the stores</button><button class="btn alt" id="ldNo">Cancel</button></div></main>`;
+  const leave = () => { LOAD = null; history.replaceState(null, "", location.pathname); render(); };
+  $("#ldNo", app).onclick = leave;
+  $("#ldGo", app).onclick = async () => { const c = clone(S.cfg); c.stores = c.stores || {}; plan.forEach(({ x, hit }) => { if (hit) { c.stores[hit.id].name = x.name; if (x.email && !c.stores[hit.id].email) c.stores[hit.id].email = x.email; } else c.stores["s" + rid()] = { name: x.name, code: x.code || "", manager: x.manager || "", email: x.email || "", pin: newPin(), active: true }; });
+    await Data.saveCfg(c); toast("Stores updated"); leave(); };
+}
 function loadView(app) {
+  if (LOAD && LOAD.update) return updateView(app);
   const list = (LOAD && LOAD.stores) || [];
   app.innerHTML = `<main><div class="card stack"><h1>Reset Store Visit</h1><p>This <b>deletes every visit, action, photo and store</b> that is in the tool now, and loads these ${list.length} stores:</p>
     <div class="list">${list.map(s => `<div class="row"><span class="grow"><b>${esc(s.name)}</b><div class="small muted">${esc([s.code, s.manager, s.email].filter(Boolean).join(" · "))}</div></span></div>`).join("")}</div>
@@ -318,18 +336,19 @@ function loadView(app) {
 function setupView(app) {
   const has = stores(true).length > 0;
   app.innerHTML = `<main><div class="brand"><img class="logo" src="logo-w.png" alt="On"><b>Store Visit</b><span>Visits, scores and actions for every store</span></div><div class="card stack"><p class="muted">Set this up once. Stores and visitors can be added or changed later.</p>
-    <div class="field"><label for="suV">Your name (the visitor)</label><input class="in" id="suV" placeholder="Name"></div>
+    <div class="field"><label for="suV">Your full name (the visitor)</label><input class="in" id="suV" placeholder="Full name" autocomplete="name"></div>
+    <div class="field"><label for="suT">Job title, as shown in Outlook</label><input class="in" id="suT" placeholder="Title" autocomplete="organization-title"></div>
     <div style="${has ? "display:none" : ""}"><h3>First store</h3></div><div style="${has ? "display:none" : ""}" class="stack"><div class="field"><label for="suS">Store name</label><input class="in" id="suS" placeholder="ON Westfield Mall, Jeddah"></div>
     <div class="row"><div class="field grow"><label for="suC">Store code</label><input class="in" id="suC"></div><div class="field grow"><label for="suM">Store manager</label><input class="in" id="suM"></div></div>
     <div class="field"><label for="suE">Store e-mail (for sending the report)</label><input class="in" id="suE" type="email" placeholder="store@company.com"></div></div>
     ${has ? `<p class="small muted">${stores(true).length} stores are already loaded.</p>` : ""}<button class="btn" id="suGo">Start</button><p class="small" id="suMsg" style="color:var(--bad)"></p></div></main>`;
   $("#suGo", app).onclick = () => { const v = $("#suV", app).value.trim(), s = $("#suS", app).value.trim(); if (!v || (!s && !has)) { $("#suMsg", app).textContent = has ? "Your name is needed." : "Your name and the store name are needed."; return; }
-    const vid = "v" + rid(); ME = vid; try { localStorage.setItem("sv-me", vid); } catch (e) {}
-    if (has) { const c = clone(S.cfg); c.visitors = { [vid]: { name: v, active: true } }; Data.saveCfg(c); return render(); }
-    Data.saveCfg({ visitors: { [vid]: { name: v, active: true } }, stores: { ["s" + rid()]: { name: s, code: $("#suC", app).value.trim(), manager: $("#suM", app).value.trim(), email: $("#suE", app).value.trim(), pin: newPin(), active: true } } }); render(); };
+    const vid = "v" + rid(), vt = $("#suT", app).value.trim(); ME = vid; try { localStorage.setItem("sv-me", vid); } catch (e) {}
+    if (has) { const c = clone(S.cfg); c.visitors = { [vid]: { name: v, title: vt, active: true } }; Data.saveCfg(c); return render(); }
+    Data.saveCfg({ visitors: { [vid]: { name: v, title: vt, active: true } }, stores: { ["s" + rid()]: { name: s, code: $("#suC", app).value.trim(), manager: $("#suM", app).value.trim(), email: $("#suE", app).value.trim(), pin: newPin(), active: true } } }); render(); };
 }
 function whoView(app) {
-  app.innerHTML = `<main><div class="brand"><img class="logo" src="logo-w.png" alt="On"><b>Store Visit</b></div><h1>Who is visiting?</h1><div class="stack">${visitors().map(v => `<button class="task" data-v="${esc(v.id)}"><span class="grow"><b>${esc(v.name)}</b></span></button>`).join("")}</div></main>`;
+  app.innerHTML = `<main><div class="brand"><img class="logo" src="logo-w.png" alt="On"><b>Store Visit</b></div><h1>Who is visiting?</h1><div class="stack">${visitors().map(v => `<button class="task" data-v="${esc(v.id)}"><span class="grow"><b>${esc(v.name)}</b>${v.title ? `<small>${esc(v.title)}</small>` : ""}</span></button>`).join("")}</div></main>`;
   app.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { ME = b.dataset.v; try { localStorage.setItem("sv-me", ME); } catch (e) {} render(); });
 }
 
@@ -359,10 +378,10 @@ function newVisitSheet() {
   m.innerHTML = `<div class="sheet"><h2>New store visit</h2><div class="field"><label for="nvS">Store</label><select class="in" id="nvS">${ss.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("")}</select></div><div class="field"><label for="nvD">Visit date</label><input class="in" type="date" id="nvD" value="${today()}"></div><div class="row"><button class="btn alt grow" id="nvNo">Cancel</button><button class="btn grow" id="nvOk">Start</button></div></div>`;
   document.body.appendChild(m); $("#nvNo", m).onclick = () => m.remove();
   $("#nvOk", m).onclick = () => { const sid = $("#nvS", m).value, st = store(sid), id = "t" + Date.now().toString(36) + rid().slice(0, 3);
-    S.visits[id] = { store: sid, date: $("#nvD", m).value || today(), visitor: ME, storeManager: st.manager || "", retailOps: S.cfg.visitors[ME].name, prework: {}, ans: {}, summary: {}, status: "draft", at: Date.now() };
+    S.visits[id] = { store: sid, date: $("#nvD", m).value || today(), visitor: ME, storeManager: st.manager || "", retailOps: [S.cfg.visitors[ME].name, S.cfg.visitors[ME].title].filter(Boolean).join(", "), prework: {}, ans: {}, summary: {}, status: "draft", at: Date.now() };
     Data.saveVisit(id); m.remove(); openVisit(id); };
 }
-async function openVisit(id, step) { if (!S.visits[id]) return; W = { id, step: step || "info", q: 0 }; if (!step) { const v = S.visits[id], first = QS.findIndex(q => !(v.ans[q.id] && v.ans[q.id].v)); if (Object.keys(v.ans).length) { W.step = first < 0 ? "summary" : "q"; W.q = Math.max(0, first); } } R = { view: "visit" }; await Data.loadPhotos(id); window.scrollTo(0, 0); render(); }
+async function openVisit(id, step) { if (!S.visits[id]) return; W = { id, step: step || "info", q: 0 }; if (!step) { const v = S.visits[id], first = QS.find(q => !(v.ans[q.id] && v.ans[q.id].v)); if (Object.keys(v.ans).length) { W.step = first ? "q" : "summary"; W.q = first ? first.si : 0; } } R = { view: "visit" }; await Data.loadPhotos(id); window.scrollTo(0, 0); render(); }
 const closeVisit = () => { W = null; go("home"); };
 function deleteVisitAsk(id) { const v = S.visits[id]; if (!v) return; const n = actionsOf(id).length;
   ask("Delete this visit?", `${(store(v.store) || {}).name || "Store"}, ${longD(v.date)}. Its answers, photos, pre-work${n ? ` and ${n} action${n > 1 ? "s" : ""}` : ""} are removed. This cannot be undone.`, "Delete the visit", () => { if (W && W.id === id) W = null; if (DB) DB.doc("sv_prework/" + id).delete().catch(() => {}); delete S.prework[id]; Data.delVisit(id); toast("Visit deleted"); go("home"); }, true); }
@@ -373,7 +392,7 @@ const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(() => { if (W) 
 const saveNow = () => { clearTimeout(saveT); if (W) Data.saveVisit(W.id); };
 function ensureAction(vid, q) {
   const v = S.visits[vid]; if (actionsOf(vid).some(a => a.q === q.id)) return;
-  Data.saveAction("a" + Date.now().toString(36) + rid().slice(0, 3), { visit: vid, store: v.store, q: q.id, section: q.sec, text: q.text, owner: v.storeManager || "", priority: "Medium", due: addDays(v.date, 7), status: "Open", closed: "", at: Date.now() });
+  Data.saveAction("a" + Date.now().toString(36) + rid().slice(0, 3), { visit: vid, store: v.store, q: q.id, section: q.sec, text: q.raw, owner: v.storeManager || "", priority: "Medium", due: addDays(v.date, 7), status: "Open", closed: "", at: Date.now() });
 }
 function setAnswer(q, val) {
   const v = S.visits[W.id]; v.ans[q.id] = Object.assign({}, v.ans[q.id], { v: val, at: Date.now() });
@@ -384,7 +403,7 @@ function setAnswer(q, val) {
 function visitView(app) {
   const v = S.visits[W.id]; if (!v) { W = null; return go("home"); }
   const st = store(v.store) || { name: "Store" }, sc = scoreOf(v), locked = v.status === "done" && W.step !== "result";
-  const stepIdx = W.step === "info" ? 0 : W.step === "prework" ? 1 : W.step === "q" ? 2 + W.q : W.step === "summary" ? 2 + QS.length : 3 + QS.length, prog = stepIdx / (3 + QS.length);
+  const stepIdx = W.step === "info" ? 0 : W.step === "prework" ? 1 : W.step === "q" ? 2 + W.q : W.step === "summary" ? 2 + SECTIONS.length : 3 + SECTIONS.length, prog = stepIdx / (3 + SECTIONS.length);
   let body = "", foot = "";
   if (W.step === "info") {
     body = `<div class="q">Visit details</div><div class="field"><label>Store</label><input class="in" value="${esc(st.name)}" disabled></div>
@@ -393,24 +412,27 @@ function visitView(app) {
       <div class="field"><label for="vfR">Retail operations</label><input class="in" id="vfR" data-f="retailOps" value="${esc(v.retailOps)}"></div>
       <div class="card stack"><div class="row"><b class="grow">Pre-work from the store</b><span class="chip ${pwCount(W.id) === METRICS.length ? "ok" : pwCount(W.id) ? "warn" : ""} num">${pwCount(W.id)} of ${METRICS.length} filled</span></div>
         ${(S.prework[W.id] || {}).sentAt ? `<p class="small muted">Sent by ${esc(S.prework[W.id].by || "the store")} on ${fmtD(ymd(new Date(S.prework[W.id].sentAt)))}</p>` : `<p class="small muted">Send the store its link. The manager fills the performance numbers while you get ready.</p>`}
-        <button class="btn alt" id="vAskPw">Ask the store to fill the pre-work</button></div>`;
+        <button class="btn alt" id="vAskPw">E-mail the pre-work link from Outlook</button><button class="pill" id="vAskPw2" style="align-self:center;border:0;background:none;text-decoration:underline">Send it another way</button></div>`;
     foot = `<button class="btn alt" id="vBack" disabled>Back</button><button class="btn" id="vNext">Next</button>`;
   } else if (W.step === "prework") {
-    body = `<div class="q">Pre-work: performance and profitability</div><p class="hint">${(S.prework[W.id] || {}).sentAt ? `Filled by ${esc(S.prework[W.id].by || "the store")}. You can correct any number.` : "The store can fill these from its link. You can also fill or correct them here. Anything left empty stays empty on the report."}</p>
-      ${METRICS.map((m, i) => { const p = pwOf(W.id)["m" + i] || {}; return `<div class="card stack"><b>${esc(m)}</b><div class="row">${[["a", "Actual"], ["ly", "LY"], ["t", "Target"]].map(([k, l]) => `<div class="field grow" style="min-width:80px"><label for="pw${i}${k}">${l}</label><input class="in num" id="pw${i}${k}" inputmode="decimal" data-pw="m${i}:${k}" value="${esc(p[k] ?? "")}"></div>`).join("")}</div><input class="in" data-pw="m${i}:c" placeholder="Comment" value="${esc(p.c ?? "")}" aria-label="Comment"></div>`; }).join("")}`;
+    body = `<div class="q">Pre-work: Performance and Profitability</div><p class="hint">${(S.prework[W.id] || {}).sentAt ? `Filled by ${esc(S.prework[W.id].by || "the store")}. You can correct any number.` : "The store can fill these from its link. You can also fill or correct them here. Anything left empty stays empty on the report."}</p>
+      ${METRICS.map(([mk, m], i) => { const p = pwOf(W.id)[mk] || {}; return `<div class="card stack"><b>${esc(m)}</b><div class="row">${[["a", "Actual"], ["ly", "LY"], ["t", "Target"]].map(([k, l]) => `<div class="field grow" style="min-width:80px"><label for="pw${i}${k}">${l}</label><input class="in num" id="pw${i}${k}" inputmode="decimal" data-pw="${mk}:${k}" value="${esc(p[k] ?? "")}"></div>`).join("")}</div><input class="in" data-pw="${mk}:c" placeholder="Comment" value="${esc(p.c ?? "")}" aria-label="Comment"></div>`; }).join("")}`;
     foot = `<button class="btn alt" id="vBack">Back</button><button class="btn" id="vNext">Next</button>`;
   } else if (W.step === "q") {
-    const q = QS[W.q], a = v.ans[q.id] || {}, ph = photosOf(W.id, q.id), act = actionsOf(W.id).find(x => x.q === q.id);
-    const btn = (val, cls, lab) => `<button class="opt ${cls} ${a.v === val ? "on" : ""}" data-ans="${val}" style="min-height:76px;font-size:1.35rem">${lab}</button>`;
-    body = `<div class="muted num">${q.n} of ${QS.length} · ${esc(q.sec)}</div><div class="q ${q.text.length > 80 ? "long" : ""}">${esc(q.text)}</div>
-      <div class="opts" style="grid-template-columns:1fr 1fr 1fr">${btn("y", "yes", "Yes")}${btn("n", "no", "No")}${btn("na", "", "N.A")}</div>
-      <div class="field"><label for="vObs">Observation / evidence</label><textarea class="big" id="vObs" style="min-height:110px;font-size:1.1rem" placeholder="Type, or tap the microphone on your keyboard and speak">${esc(a.note || "")}</textarea></div>
-      <div class="stack" style="gap:8px"><div class="thumbs">${ph.map(p => `<div><img src="${p.data}" alt="Photo for question ${q.n}"><button data-delp="${esc(p.id)}" aria-label="Remove photo">✕</button></div>`).join("")}</div>
-        ${ph.length < MAX_PHOTOS ? `<label class="btn alt" style="display:flex;align-items:center;justify-content:center;cursor:pointer">+ Add a photo (${ph.length}/${MAX_PHOTOS})<input type="file" id="vPhoto" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0"></label>` : `<p class="small muted">${MAX_PHOTOS} photos added, which is the most for one question.</p>`}</div>
-      ${act ? `<div class="card stack" style="border-inline-start:6px solid var(--bad)"><b>Action for the store</b><div class="field"><label for="acT">Action / required standard</label><textarea class="in" id="acT" data-ac="text" rows="3">${esc(act.text)}</textarea></div>
-        <div class="row"><div class="field grow"><label for="acO">Owner</label><input class="in" id="acO" data-ac="owner" value="${esc(act.owner)}"></div><div class="field grow"><label for="acP">Priority</label><select class="in" id="acP" data-ac="priority">${PRIOS.map(p => `<option ${act.priority === p ? "selected" : ""}>${p}</option>`).join("")}</select></div></div>
-        <div class="field"><label for="acD">Due date</label><input class="in" type="date" id="acD" data-ac="due" value="${esc(act.due)}"></div></div>` : ""}`;
-    foot = `<button class="btn alt" id="vBack">Back</button><button class="btn" id="vNext">${a.v ? "Next" : "Skip for now"}</button>`;
+    /* one screen per section, with every question of that section on it */
+    const si = W.q, name = SECTIONS[si][0], sec = sc.secs[si];
+    const card = q => { const a = v.ans[q.id] || {}, ph = photosOf(W.id, q.id), act = actionsOf(W.id).find(x => x.q === q.id), btn = (val, cls, lab) => `<button class="opt ${cls} ${a.v === val ? "on" : ""}" data-ans="${val}" style="min-height:52px;padding:10px">${lab}</button>`;
+      return `<div class="card stack" data-q="${q.id}" style="border-inline-start:6px solid var(--${a.v === "y" ? "ok" : a.v === "n" ? "bad" : a.v === "na" ? "muted" : "line"})"><div class="qt"><span class="num muted">${q.n}.</span> ${esc(q.text)}</div>
+        <div class="opts" style="grid-template-columns:1fr 1fr 1fr">${btn("y", "yes", "Yes")}${btn("n", "no", "No")}${btn("na", "", "N.A")}</div>
+        <textarea class="in" rows="2" data-note="1" aria-label="Observation / evidence for question ${q.n}" placeholder="Observation / evidence">${esc(a.note || "")}</textarea>
+        ${ph.length ? `<div class="thumbs">${ph.map(p => `<div><img src="${p.data}" alt="Photo for question ${q.n}"><button data-delp="${esc(p.id)}" aria-label="Remove photo">✕</button></div>`).join("")}</div>` : ""}
+        ${ph.length < MAX_PHOTOS ? `<label class="btn sm alt" style="display:flex;align-items:center;justify-content:center;cursor:pointer;align-self:flex-start">+ Photo (${ph.length}/${MAX_PHOTOS})<input type="file" data-photo="1" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0"></label>` : ""}
+        ${act ? `<div class="stack" style="border-top:1px solid var(--line);padding-top:10px"><b style="color:var(--bad)">Action for the store</b><div class="field"><label>Action / Required Standard</label><textarea class="in" data-ac="text" rows="2">${esc(act.text)}</textarea></div>
+          <div class="row"><div class="field grow"><label>Owner</label><input class="in" data-ac="owner" value="${esc(act.owner)}"></div><div class="field grow"><label>Priority</label><select class="in" data-ac="priority">${PRIOS.map(p => `<option ${act.priority === p ? "selected" : ""}>${p}</option>`).join("")}</select></div></div>
+          <div class="field"><label>Due Date</label><input class="in" type="date" data-ac="due" value="${esc(act.due)}"></div></div>` : ""}</div>`; };
+    body = `<div class="row"><h1 class="grow">${esc(name)}</h1>${sec.y + sec.n ? `<span class="band ${band(sec.score)[1]} num" id="secScore">${pct(sec.score)}</span>` : ""}</div>
+      <p class="muted small num" style="margin-top:-10px">Section ${si + 1} of ${SECTIONS.length} · ${sec.done} of ${sec.total} answered</p>${QS.filter(q => q.si === si).map(card).join("")}`;
+    foot = `<button class="btn alt" id="vBack">Back</button><button class="btn" id="vNext">${si < SECTIONS.length - 1 ? "Next section" : "Visit summary"}</button>`;
   } else if (W.step === "summary") {
     body = `<div class="q">Visit summary and agreed priorities</div>${SUMMARY.map((s, i) => `<div class="field"><label for="sm${i}">${esc(s)}</label><textarea class="in" id="sm${i}" data-sm="s${i}" rows="3">${esc((v.summary || {})["s" + i] || "")}</textarea></div>`).join("")}`;
     foot = `<button class="btn alt" id="vBack">Back</button><button class="btn" id="vNext">See the result</button>`;
@@ -423,36 +445,37 @@ function visitView(app) {
       ${repeat.length ? `<div class="card stack" style="border-inline-start:6px solid var(--bad)"><b>Still a "No" since the last visit (${repeat.length})</b>${repeat.map(q => `<div class="small">Q${q.n}. ${esc(q.text)}</div>`).join("")}</div>` : ""}
       ${left.length ? `<div class="banner">${left.length} question${left.length > 1 ? "s are" : " is"} not answered yet: ${left.slice(0, 12).map(q => "Q" + q.n).join(", ")}${left.length > 12 ? "…" : ""}</div>` : ""}
       <div class="card stack"><b>Report</b><button class="btn" id="rpView">View the report</button><div class="row"><button class="btn alt grow" id="rpSave">Save as PDF</button><button class="btn alt grow" id="rpShare">Share the PDF</button></div>
-        <a class="btn alt" id="rpMail" style="text-align:center;text-decoration:none" href="#">E-mail the result to the store</a><p class="small muted" id="rpMsg">${st.email ? `Store e-mail: <b>${esc(st.email)}</b>` : "No e-mail saved for this store yet. Add it under Stores."}</p></div>
+        <button class="btn alt" id="rpOut">E-mail the result from Outlook</button><a class="pill" id="rpMail" style="align-self:center;border:0;background:none;text-decoration:underline;color:inherit" href="#">Use another mail app</a><p class="small muted" id="rpMsg">${st.email ? `Store e-mail: <b>${esc(st.email)}</b>` : "No e-mail saved for this store yet. Add it under Stores."}</p></div>
       <div class="row">${v.status === "done" ? `<button class="btn alt grow" id="rpReopen">Reopen to edit</button>` : `<button class="btn grow" id="rpDone">Mark the visit complete</button>`}<button class="btn bad" id="rpDel">Delete</button></div>
       <p class="small muted">${acts.length} action${acts.length === 1 ? "" : "s"} raised for the store. Follow them up on the Actions page.</p>`;
     foot = `<button class="btn alt" id="vBack">Back</button><button class="btn" id="vClose">Done</button>`;
   }
-  app.innerHTML = `<div class="wiz" style="position:static;min-height:100vh"><header><button class="pill" id="vX" aria-label="Close">✕</button><img class="logo" style="width:24px;height:24px" src="logo-w.png" alt="On"><div class="t">${esc(st.name)}</div><span class="chip num">${sc.any ? pct(sc.overall) : "–"}</span><button class="pill" id="vIdx">Sections</button></header>
+  app.innerHTML = `<div class="wiz" style="position:static;min-height:100vh"><header><button class="pill" id="vX" aria-label="Close">✕</button><img class="logo" style="width:auto;height:26px" src="logo-w.png" alt="On"><div class="t">${esc(st.name)}</div><span class="chip num">${sc.any ? pct(sc.overall) : "–"}</span><button class="pill" id="vIdx">Sections</button></header>
     <div class="prog"><i style="width:${Math.round(prog * 100)}%"></i></div><div class="body">${v.status === "done" && W.step !== "result" ? `<div class="banner">This visit is marked complete. Changes you make here are still saved.</div>` : ""}${body}</div><footer style="position:sticky;bottom:0;background:var(--bg)">${foot}</footer></div>`;
   const edit = fn => { fn(v); saveSoon(); };
   $("#vX", app).onclick = () => { saveNow(); closeVisit(); };
   $("#vIdx", app).onclick = sectionsSheet;
   const order = ["info", "prework", "q", "summary", "result"];
-  const move = dir => { saveNow(); if (W.step === "q") { const nq = W.q + dir; if (nq >= 0 && nq < QS.length) { W.q = nq; window.scrollTo(0, 0); return render(); } }
-    const i = order.indexOf(W.step) + dir; if (i < 0 || i >= order.length) return; W.step = order[i]; if (W.step === "q") W.q = dir > 0 ? 0 : QS.length - 1; window.scrollTo(0, 0); render(); };
+  const move = dir => { saveNow(); if (W.step === "q") { const nq = W.q + dir; if (nq >= 0 && nq < SECTIONS.length) { W.q = nq; window.scrollTo(0, 0); return render(); } }
+    const i = order.indexOf(W.step) + dir; if (i < 0 || i >= order.length) return; W.step = order[i]; if (W.step === "q") W.q = dir > 0 ? 0 : SECTIONS.length - 1; window.scrollTo(0, 0); render(); };
   const nx = $("#vNext", app); if (nx) nx.onclick = () => move(1);
   const bk = $("#vBack", app); if (bk) bk.onclick = () => move(-1);
   const cl = $("#vClose", app); if (cl) cl.onclick = () => { saveNow(); closeVisit(); };
   app.querySelectorAll("[data-f]").forEach(i => i.oninput = () => edit(x => { x[i.dataset.f] = i.value; }));
   app.querySelectorAll("[data-pw]").forEach(i => i.onchange = () => { const [m, k] = i.dataset.pw.split(":"); Data.patchPrework(W.id, { store: v.store, [m]: Object.assign({}, pwOf(W.id)[m], { [k]: i.value }) }); });
-  const ap = $("#vAskPw", app); if (ap) ap.onclick = () => askPrework(W.id);
+  const ap = $("#vAskPw", app); if (ap) { ap.onclick = () => askPrework(W.id, true); $("#vAskPw2", app).onclick = () => askPrework(W.id, false); }
   app.querySelectorAll("[data-sm]").forEach(i => i.oninput = () => edit(x => { x.summary = x.summary || {}; x.summary[i.dataset.sm] = i.value; }));
   if (W.step === "q") {
-    const q = QS[W.q];
-    app.querySelectorAll("[data-ans]").forEach(b => b.onclick = () => { const obs = $("#vObs", app); if (obs) v.ans[q.id] = Object.assign({}, v.ans[q.id], { note: obs.value }); setAnswer(q, b.dataset.ans); render(); });
-    $("#vObs", app).oninput = e => edit(x => { x.ans[q.id] = Object.assign({}, x.ans[q.id], { note: e.target.value }); });
-    const pi = $("#vPhoto", app); if (pi) pi.onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const data = await shrinkPhoto(f); await Data.savePhoto(W.id, "p" + Date.now().toString(36) + rid().slice(0, 3), { visit: W.id, q: q.id, data, at: Date.now() }); } catch (er) { toast(er.message || "The photo could not be added."); } render(); };
-    app.querySelectorAll("[data-delp]").forEach(b => b.onclick = () => { Data.delPhoto(W.id, b.dataset.delp); render(); });
-    app.querySelectorAll("[data-ac]").forEach(i => i.onchange = () => { const act = actionsOf(W.id).find(x => x.q === q.id); if (!act) return; const { id, ...rest } = act; rest[i.dataset.ac] = i.value; Data.saveAction(id, rest); });
+    const keep = () => { const y = window.scrollY; render(); window.scrollTo(0, y); };
+    app.querySelectorAll("[data-q]").forEach(card => { const q = QS.find(x => x.id === card.dataset.q);
+      card.querySelectorAll("[data-ans]").forEach(b => b.onclick = () => { setAnswer(q, b.dataset.ans); keep(); });
+      $("[data-note]", card).oninput = e => edit(x => { x.ans[q.id] = Object.assign({}, x.ans[q.id], { note: e.target.value }); });
+      const pi = $("[data-photo]", card); if (pi) pi.onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const data = await shrinkPhoto(f); await Data.savePhoto(W.id, "p" + Date.now().toString(36) + rid().slice(0, 3), { visit: W.id, q: q.id, data, at: Date.now() }); } catch (er) { toast(er.message || "The photo could not be added."); } keep(); };
+      card.querySelectorAll("[data-delp]").forEach(b => b.onclick = () => { Data.delPhoto(W.id, b.dataset.delp); keep(); });
+      card.querySelectorAll("[data-ac]").forEach(i => i.onchange = () => { const act = actionsOf(W.id).find(x => x.q === q.id); if (act) Data.patchAction(act.id, { [i.dataset.ac]: i.value }); }); });
   }
   if (W.step === "result") {
-    app.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { W.step = "q"; W.q = QS.findIndex(q => q.si === +b.dataset.sec); window.scrollTo(0, 0); render(); });
+    app.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => { W.step = "q"; W.q = +b.dataset.sec; window.scrollTo(0, 0); render(); });
     const msg = t => { $("#rpMsg", app).textContent = t; };
     $("#rpView", app).onclick = async () => { msg("Building the report…"); try { showReport(await buildReport(W.id)); msg(""); } catch (e) { console.error(e); msg("The report could not be built: " + (e.message || e)); } };
     const fileName = `Store Visit - ${st.name} - ${v.date}.pdf`.replace(/[\\/:*?"<>|]/g, " ");
@@ -462,6 +485,7 @@ function visitView(app) {
         if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Store Visit Report", text: mailText(W.id) }); } else { downloadBlob(blob, fileName); msg("This device cannot share files directly, so the PDF was saved instead. Attach it to your e-mail."); } }
       catch (e) { if (e && e.name !== "AbortError") { console.error(e); msg("Sharing did not work: " + (e.message || e)); } } };
     $("#rpMail", app).href = `mailto:${encodeURIComponent(st.email || "")}?subject=${encodeURIComponent(`Store Visit Report - ${st.name} - ${longD(v.date)}`)}&body=${encodeURIComponent(mailText(W.id))}`;
+    $("#rpOut", app).onclick = () => { if (!st.email) { msg("No e-mail is saved for this store. Add it under Stores."); return; } outlookCompose(st.email, `Store Visit Report - ${st.name} - ${longD(v.date)}`, mailText(W.id)); };
     const dn = $("#rpDone", app); if (dn) dn.onclick = () => { v.status = "done"; v.doneAt = Date.now(); saveNow(); toast("Visit marked complete"); render(); };
     const ro = $("#rpReopen", app); if (ro) ro.onclick = () => { v.status = "draft"; saveNow(); render(); };
     $("#rpDel", app).onclick = () => deleteVisitAsk(W.id);
@@ -476,7 +500,7 @@ function sectionsSheet() {
   document.body.appendChild(m); $("#ssX", m).onclick = () => m.remove(); $("#ssDel", m).onclick = () => { m.remove(); deleteVisitAsk(W.id); };
   const jump = fn => { saveNow(); fn(); m.remove(); window.scrollTo(0, 0); render(); };
   m.querySelectorAll("[data-j]").forEach(b => b.onclick = () => jump(() => { W.step = b.dataset.j; }));
-  m.querySelectorAll("[data-js]").forEach(b => b.onclick = () => jump(() => { W.step = "q"; const first = QS.findIndex(q => q.si === +b.dataset.js && !(v.ans[q.id] && v.ans[q.id].v)); W.q = first >= 0 ? first : QS.findIndex(q => q.si === +b.dataset.js); }));
+  m.querySelectorAll("[data-js]").forEach(b => b.onclick = () => jump(() => { W.step = "q"; W.q = +b.dataset.js; }));
 }
 function mailText(vid) {
   const v = S.visits[vid], st = store(v.store) || {}, sc = scoreOf(v), acts = actionsOf(vid), L = [];
@@ -489,11 +513,12 @@ function mailText(vid) {
 }
 function downloadBlob(blob, name) { try { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast("PDF saved"); } catch (e) { toast("Saving files is not available here."); } }
 
-function askPrework(vid) {
+function askPrework(vid, outlook) {
   const v = S.visits[vid], st = store(v.store); if (!st) return;
   if (!st.pin) { const c = clone(S.cfg); c.stores[v.store].pin = newPin(); Data.saveCfg(c); }
-  const s2 = store(v.store);
-  shareText(`Store visit on ${longD(v.date)}.\nPlease fill the pre-work numbers before we start:\n${storeLink(v.store)}\nPIN: ${s2.pin}`, "Pre-work for the store visit");
+  const s2 = store(v.store), subject = `Store Visit ${longD(v.date)}: Pre-work for ${s2.name}`;
+  const text = `Hello${s2.manager ? " " + s2.manager.split(" ")[0] : ""},\n\nPlease fill the Performance and Profitability pre-work for the store visit on ${longD(v.date)}:\n${storeLink(v.store)}\nPIN: ${s2.pin}\n\nThank you,\n${(S.cfg.visitors[ME] || {}).name || ""}`;
+  if (outlook) { if (!s2.email) { toast("No e-mail is saved for this store. Add it under Stores."); return; } outlookCompose(s2.email, subject, text); } else shareText(text, subject);
 }
 /* ===================== actions ===================== */
 VIEWS.actions = () => {
@@ -524,15 +549,16 @@ HOOKS.actions = app => {
 VIEWS.stores = () => `<h1>Stores</h1><p class="muted">Add a store whenever a new one opens. The e-mail is used when you send the report. Each store has its own link and PIN, where the manager fills the pre-work and updates the actions.</p>
   <div class="list">${stores(true).map(s => `<button class="row" data-st="${esc(s.id)}" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>${esc(s.name)}</b><div class="small muted">${esc([s.code, s.manager, s.email].filter(Boolean).join(" · "))}${s.active === false ? " · not in use" : ""}</div></span><span class="chip">Edit</span></button><div class="row" style="padding-top:0"><span class="grow small muted num">Store link PIN: <b>${esc(s.pin || "not set")}</b></span><button class="btn sm alt" data-sl="${esc(s.id)}">Share the store link</button></div>`).join("") || `<div class="muted">No stores yet.</div>`}</div>
   <button class="btn soft" id="stAdd">+ Add a store</button>
-  <div class="sec"><h2>Visitors</h2></div><div class="list">${Object.entries(S.cfg.visitors || {}).map(([id, v]) => `<div class="row"><input class="in grow" data-vn="${esc(id)}" value="${esc(v.name)}" aria-label="Visitor name"><label class="row small" style="gap:6px"><input type="checkbox" data-va="${esc(id)}" ${v.active !== false ? "checked" : ""} ${id === ME ? "disabled" : ""} style="width:20px;height:20px">In use</label></div>`).join("")}
-  <div class="row"><input class="in grow" id="vnNew" placeholder="Name of another visitor"><button class="btn sm" id="vnAdd">Add</button></div></div>`;
+  <div class="sec"><h2>Visitors</h2></div><div class="list">${Object.entries(S.cfg.visitors || {}).map(([id, v]) => `<div class="row"><input class="in grow" data-vn="${esc(id)}" value="${esc(v.name)}" aria-label="Full name" placeholder="Full name" style="min-width:140px"><input class="in grow" data-vt="${esc(id)}" value="${esc(v.title || "")}" aria-label="Job title" placeholder="Job title, as in Outlook" style="min-width:140px"><label class="row small" style="gap:6px"><input type="checkbox" data-va="${esc(id)}" ${v.active !== false ? "checked" : ""} ${id === ME ? "disabled" : ""} style="width:20px;height:20px">In use</label></div>`).join("")}
+  <div class="row"><input class="in grow" id="vnNew" placeholder="Full name of another visitor" style="min-width:140px"><input class="in grow" id="vtNew" placeholder="Job title, as in Outlook" style="min-width:140px"><button class="btn sm" id="vnAdd">Add</button></div></div>`;
 HOOKS.stores = app => {
   const save = fn => { const c = clone(S.cfg); fn(c); Data.saveCfg(c); render(); };
   app.querySelectorAll("[data-st]").forEach(b => b.onclick = () => storeSheet(b.dataset.st)); $("#stAdd", app).onclick = () => storeSheet(null);
   app.querySelectorAll("[data-sl]").forEach(b => b.onclick = () => { const id = b.dataset.sl; if (!store(id).pin) { const c = clone(S.cfg); c.stores[id].pin = newPin(); Data.saveCfg(c); } const s = store(id); shareText(`Store Visit page for ${s.name}:\n${storeLink(id)}\nPIN: ${s.pin}`, "Store link"); render(); });
   app.querySelectorAll("[data-vn]").forEach(i => i.onchange = () => { if (i.value.trim()) save(c => { c.visitors[i.dataset.vn].name = i.value.trim(); }); });
   app.querySelectorAll("[data-va]").forEach(i => i.onchange = () => save(c => { c.visitors[i.dataset.va].active = i.checked; }));
-  $("#vnAdd", app).onclick = () => { const n = $("#vnNew", app).value.trim(); if (n) save(c => { c.visitors["v" + rid()] = { name: n, active: true }; }); };
+  app.querySelectorAll("[data-vt]").forEach(i => i.onchange = () => save(c => { c.visitors[i.dataset.vt].title = i.value.trim(); }));
+  $("#vnAdd", app).onclick = () => { const n = $("#vnNew", app).value.trim(), t = $("#vtNew", app).value.trim(); if (n) save(c => { c.visitors["v" + rid()] = { name: n, title: t, active: true }; }); };
 };
 function storeSheet(id) {
   const s = id ? store(id) : { name: "", code: "", manager: "", email: "", active: true }, m = document.createElement("div"); m.className = "modal";
@@ -569,8 +595,8 @@ function storeView(app) {
   const acts = Object.entries(S.actions).map(([id, a]) => ({ id, ...a })).filter(a => a.store === SID), open = acts.filter(a => a.status !== "Closed").sort((a, b) => (a.due || "9").localeCompare(b.due || "9")), closed = acts.filter(a => a.status === "Closed");
   if (!SM.loaded) { SM.loaded = true; Promise.all([...new Set(acts.map(a => a.visit))].map(x => Data.loadPhotos(x, true))).then(() => soft()); }
   const pwCard = v => { const pw = pwOf(v.id), sent = (S.prework[v.id] || {}).sentAt;
-    return `<div class="card stack" data-pwv="${esc(v.id)}"><div class="row"><span class="grow"><b>Visit on ${longD(v.date)}</b><div class="small muted">Performance and profitability numbers</div></span><span class="chip ${sent ? "ok" : pwCount(v.id) ? "warn" : ""} num">${sent ? "Sent ✓" : pwCount(v.id) + " of " + METRICS.length}</span></div>
-      ${METRICS.map((m, i) => { const p = pw["m" + i] || {}; return `<div class="stack" style="gap:6px;border-top:1px solid var(--line);padding-top:10px"><b>${esc(m)}</b><div class="row">${[["a", "Actual"], ["ly", "Last year"], ["t", "Target"]].map(([k, l]) => `<div class="field grow" style="min-width:80px"><label>${l}</label><input class="in num" inputmode="decimal" data-pw="m${i}:${k}" value="${esc(p[k] ?? "")}"></div>`).join("")}</div><input class="in" data-pw="m${i}:c" placeholder="Comment (optional)" value="${esc(p.c ?? "")}" aria-label="Comment for ${esc(m)}"></div>`; }).join("")}
+    return `<div class="card stack" data-pwv="${esc(v.id)}"><div class="row"><span class="grow"><b>Visit on ${longD(v.date)}</b><div class="small muted">Performance and Profitability</div></span><span class="chip ${sent ? "ok" : pwCount(v.id) ? "warn" : ""} num">${sent ? "Sent ✓" : pwCount(v.id) + " of " + METRICS.length}</span></div>
+      ${METRICS.map(([mk, m], i) => { const p = pw[mk] || {}; return `<div class="stack" style="gap:6px;border-top:1px solid var(--line);padding-top:10px"><b>${esc(m)}</b><div class="row">${[["a", "Actual"], ["ly", "Last year"], ["t", "Target"]].map(([k, l]) => `<div class="field grow" style="min-width:80px"><label>${l}</label><input class="in num" inputmode="decimal" data-pw="${mk}:${k}" value="${esc(p[k] ?? "")}"></div>`).join("")}</div><input class="in" data-pw="${mk}:c" placeholder="Comment (optional)" value="${esc(p.c ?? "")}" aria-label="Comment for ${esc(m)}"></div>`; }).join("")}
       <button class="btn" data-pwsend="${esc(v.id)}">${sent ? "Send the corrected numbers" : "Send to the visitor"}</button><p class="small muted">Your numbers are saved as you type. Leave a box empty if you do not have the number.</p></div>`; };
   const actCard = a => { const q = QS.find(x => x.id === a.q) || { n: "" }, over = a.due && a.due < today(), ph = actPhotos(a.visit, a.id);
     return `<div class="card stack" data-sa="${esc(a.id)}" style="border-inline-start:6px solid var(--${a.storeDone ? "ok" : over ? "bad" : "warn"})"><div class="row"><span class="grow small muted">Q${q.n} · ${esc(a.section)} · visit ${fmtD((S.visits[a.visit] || {}).date)}</span><span class="chip ${a.priority === "Critical" ? "bad" : a.priority === "High" ? "warn" : ""}">${esc(a.priority)}</span></div>
@@ -628,7 +654,7 @@ async function buildReport(vid) {
   bar("PRE-WORK | PERFORMANCE & PROFITABILITY");
   const pw = [150, 62, 62, 48, 62, 48, IW - 432];
   row(["Metric", "Actual", "LY", "%", "Target", "%", "Comments"].map((t, i) => ({ w: pw[i], t, align: i && i < 6 ? "center" : "left" })), { bold: 1, fill: "#e6e6e6" });
-  METRICS.forEach((m, i) => { const p = pwOf(vid)["m" + i] || {}; row([{ w: pw[0], t: m }, { w: pw[1], t: p.a, align: "center" }, { w: pw[2], t: p.ly, align: "center" }, { w: pw[3], t: pc1(p.a, p.ly), align: "center" }, { w: pw[4], t: p.t, align: "center" }, { w: pw[5], t: pc1(p.a, p.t), align: "center" }, { w: pw[6], t: p.c }]); }); y += 10;
+  METRICS.forEach(([mk, m]) => { const p = pwOf(vid)[mk] || {}; row([{ w: pw[0], t: m }, { w: pw[1], t: p.a, align: "center" }, { w: pw[2], t: p.ly, align: "center" }, { w: pw[3], t: pc1(p.a, p.ly), align: "center" }, { w: pw[4], t: p.t, align: "center" }, { w: pw[5], t: pc1(p.a, p.t), align: "center" }, { w: pw[6], t: p.c }]); }); y += 10;
 
   bar("1. SCORE SUMMARY");
   const sw = [IW - 240, 90, 150];
