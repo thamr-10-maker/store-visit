@@ -3,32 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#000000">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Store Visit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* Layout idea: a phone-first work tool. One column, big touch targets, status told by colour + shape. */
 :root{
-  --bg:#f3f4f1; --surface:#ffffff; --surface2:#e9ebe6; --ink:#16201c; --muted:#5d6a64; --line:#d5d9d2;
-  --accent:#0d5c4b; --accent-ink:#ffffff; --accent-soft:#dcebe5;
-  --ok:#1f7a45; --ok-soft:#dff1e5; --warn:#a15c00; --warn-soft:#fbecd2; --bad:#b3261e; --bad-soft:#fadfdc;
-  --font:"IBM Plex Sans","IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-  --r:14px;
+  --bg:#f4f4f2; --surface:#ffffff; --surface2:#ebebe8; --ink:#000000; --muted:#63635f; --line:#dcdcd7;
+  --accent:#000000; --accent-ink:#ffffff; --accent-soft:#ebebe8;
+  --ok:#17693a; --ok-soft:#e0f0e5; --warn:#8f5200; --warn-soft:#f8ead0; --bad:#b3261e; --bad-soft:#fae0dd;
+  --font:"Archivo","IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --r:10px;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme:dark;
-    --bg:#111614; --surface:#1a211e; --surface2:#242d29; --ink:#e9eee9; --muted:#9aa8a1; --line:#334039;
-    --accent:#4fc3a5; --accent-ink:#06231b; --accent-soft:#1d3a32;
-    --ok:#62c98a; --ok-soft:#173524; --warn:#f0b35a; --warn-soft:#3b2c12; --bad:#ff8a80; --bad-soft:#42201d;
+    --bg:#000000; --surface:#141414; --surface2:#232323; --ink:#ffffff; --muted:#a3a39e; --line:#303030;
+    --accent:#ffffff; --accent-ink:#000000; --accent-soft:#232323;
+    --ok:#6bd494; --ok-soft:#12301f; --warn:#f0b35a; --warn-soft:#352810; --bad:#ff8a80; --bad-soft:#3d1c19;
   }
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --bg:#111614; --surface:#1a211e; --surface2:#242d29; --ink:#e9eee9; --muted:#9aa8a1; --line:#334039;
-  --accent:#4fc3a5; --accent-ink:#06231b; --accent-soft:#1d3a32;
-  --ok:#62c98a; --ok-soft:#173524; --warn:#f0b35a; --warn-soft:#3b2c12; --bad:#ff8a80; --bad-soft:#42201d;
+  --bg:#000000; --surface:#141414; --surface2:#232323; --ink:#ffffff; --muted:#a3a39e; --line:#303030;
+  --accent:#ffffff; --accent-ink:#000000; --accent-soft:#232323;
+  --ok:#6bd494; --ok-soft:#12301f; --warn:#f0b35a; --warn-soft:#352810; --bad:#ff8a80; --bad-soft:#3d1c19;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -122,6 +123,35 @@ textarea.big{min-height:190px;resize:vertical;line-height:1.4}
 table.t{width:100%;border-collapse:collapse;font-size:.9rem} table.t td,table.t th{padding:8px 6px;border-top:1px solid var(--line);text-align:start;vertical-align:top} table.t th{color:var(--muted);font-weight:600;border-top:0}
 .scroll{overflow-x:auto}
 [dir="rtl"] .flip{transform:scaleX(-1)}
+/* ---- On look: black and white, the black band at the top carries the logo ---- */
+h1{font-size:1.7rem;font-weight:800;letter-spacing:-.025em} h2{font-size:1.2rem;font-weight:700;letter-spacing:-.015em} h3{font-weight:700}
+.top{background:#000;color:#fff;border-bottom:1px solid #2a2a2a;padding:10px 16px;min-height:60px}
+.top .logo{width:30px;height:30px;flex:0 0 auto;display:block}
+.top .who b{font-weight:700;letter-spacing:-.01em} .top .who span{color:#b9b9b4}
+.top .pill{background:transparent;color:#fff;border-color:#5a5a5a}
+.btn{border-radius:999px;font-weight:700;letter-spacing:-.005em}
+.btn.alt{border:1.5px solid var(--ink)} .btn.soft{background:var(--surface);color:var(--ink);border:1.5px dashed var(--ink)}
+.btn.sm{border-radius:999px;padding:8px 14px}
+.btn.bad{border:1.5px solid var(--bad);background:var(--surface)}
+.card,.kpi,.tile,.list,.task{box-shadow:0 1px 0 rgba(0,0,0,.04)}
+.kpi b{font-weight:800;letter-spacing:-.03em;font-size:1.9rem}
+.tile .let{color:var(--muted)}
+.chip.acc{background:var(--ink);color:var(--bg)}
+nav.tabs button{position:relative} nav.tabs button.on{color:var(--ink)} nav.tabs button.on::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;background:var(--ink);border-radius:0 0 3px 3px}
+.opt{border-radius:12px} .opt.on{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.wiz .q{font-weight:800;letter-spacing:-.02em}
+.wiz header{background:#000;color:#fff;border-bottom:0} .wiz header .pill{background:transparent;color:#fff;border-color:#5a5a5a} .wiz header .chip{background:#fff;color:#000}
+.wiz .prog{background:#2a2a2a;height:4px} .wiz .prog i{background:#fff}
+.in{border-radius:8px} .in:focus,.big:focus{border-color:var(--ink);outline:2px solid var(--ink);outline-offset:0}
+.days button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)} .days button.on span{color:var(--bg)}
+.pad button{border-radius:50%;aspect-ratio:1;min-height:0;font-weight:700} .pad{max-width:280px;gap:14px}
+.hero{background:#000;color:#fff;border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:12px}
+.hero{--ok:#6bd494;--bad:#ff8a80;--warn:#f0b35a;--ok-soft:#12301f;--warn-soft:#352810;--bad-soft:#3d1c19}
+.hero .muted{color:#b9b9b4} .hero .score{font-size:4rem;font-weight:800;letter-spacing:-.04em}
+.hero .chip{background:#2a2a2a;color:#fff}
+.brand{display:flex;flex-direction:column;align-items:center;gap:14px;background:#000;color:#fff;border-radius:var(--r);padding:28px 18px;text-align:center}
+.brand img{width:54px;height:54px} .brand b{font-size:1.5rem;font-weight:800;letter-spacing:-.025em} .brand span{color:#b9b9b4;font-size:.9rem}
+summary{font-weight:700;cursor:pointer}
 @media (max-width:400px){.kpis{grid-template-columns:1fr 1fr 1fr}.wiz .q{font-size:1.35rem}}
 
 .thumbs{display:flex;gap:8px;flex-wrap:wrap}
@@ -260,7 +290,7 @@ function render() {
   if (!ME || !visitors().some(v => v.id === ME)) { const vs = visitors(); if (vs.length === 1) ME = vs[0].id; else return whoView(app); }
   if (W && R.view === "visit") return visitView(app);
   const me = S.cfg.visitors[ME];
-  app.innerHTML = `<div class="top"><div class="who"><b>Store Visit</b><span>${esc(me.name)}${S.mode === "local" ? " · this device only" : ""}</span></div>${visitors().length > 1 ? `<button class="pill" id="tpWho">Change visitor</button>` : ""}</div>
+  app.innerHTML = `<div class="top"><img class="logo" src="logo-w.png" alt="On"><div class="who"><b>Store Visit</b><span>${esc(me.name)}${S.mode === "local" ? " · this device only" : ""}</span></div>${visitors().length > 1 ? `<button class="pill" id="tpWho">Change visitor</button>` : ""}</div>
     <main>${S.mode === "local" ? `<div class="banner">Not connected to the shared data. What you enter is kept on this device only.</div>` : ""}${(VIEWS[R.view] || VIEWS.home)()}</main>
     <nav class="tabs"><div>${TABS.map(([v, l]) => `<button data-go="${v}" class="${R.view === v || (v === "home" && !TABS.some(t => t[0] === R.view)) ? "on" : ""}"><span style="font-size:.85rem">${l}</span></button>`).join("")}</div></nav>`;
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
@@ -287,7 +317,7 @@ function loadView(app) {
 }
 function setupView(app) {
   const has = stores(true).length > 0;
-  app.innerHTML = `<main><div class="card stack"><h1>Store Visit</h1><p class="muted">Set this up once. Stores and visitors can be added or changed later.</p>
+  app.innerHTML = `<main><div class="brand"><img class="logo" src="logo-w.png" alt="On"><b>Store Visit</b><span>Visits, scores and actions for every store</span></div><div class="card stack"><p class="muted">Set this up once. Stores and visitors can be added or changed later.</p>
     <div class="field"><label for="suV">Your name (the visitor)</label><input class="in" id="suV" placeholder="Name"></div>
     <div style="${has ? "display:none" : ""}"><h3>First store</h3></div><div style="${has ? "display:none" : ""}" class="stack"><div class="field"><label for="suS">Store name</label><input class="in" id="suS" placeholder="ON Westfield Mall, Jeddah"></div>
     <div class="row"><div class="field grow"><label for="suC">Store code</label><input class="in" id="suC"></div><div class="field grow"><label for="suM">Store manager</label><input class="in" id="suM"></div></div>
@@ -299,7 +329,7 @@ function setupView(app) {
     Data.saveCfg({ visitors: { [vid]: { name: v, active: true } }, stores: { ["s" + rid()]: { name: s, code: $("#suC", app).value.trim(), manager: $("#suM", app).value.trim(), email: $("#suE", app).value.trim(), pin: newPin(), active: true } } }); render(); };
 }
 function whoView(app) {
-  app.innerHTML = `<main><h1>Who is visiting?</h1><div class="stack">${visitors().map(v => `<button class="task" data-v="${esc(v.id)}"><span class="grow"><b>${esc(v.name)}</b></span></button>`).join("")}</div></main>`;
+  app.innerHTML = `<main><div class="brand"><img class="logo" src="logo-w.png" alt="On"><b>Store Visit</b></div><h1>Who is visiting?</h1><div class="stack">${visitors().map(v => `<button class="task" data-v="${esc(v.id)}"><span class="grow"><b>${esc(v.name)}</b></span></button>`).join("")}</div></main>`;
   app.querySelectorAll("[data-v]").forEach(b => b.onclick = () => { ME = b.dataset.v; try { localStorage.setItem("sv-me", ME); } catch (e) {} render(); });
 }
 
@@ -310,16 +340,17 @@ VIEWS.home = () => {
   return `<button class="btn" id="hmNew" style="font-size:1.1rem">+ Start a store visit</button>
     <div class="kpis"><div class="kpi"><b class="num">${done.length}</b><span>visits completed</span></div><div class="kpi"><b class="num">${pct(avg)}</b><span>average score</span></div><div class="kpi"><b class="num" style="color:${over.length ? "var(--bad)" : "inherit"}">${open.length}</b><span>open actions${over.length ? ` · ${over.length} overdue` : ""}</span></div></div>
     ${open.filter(a => a.storeDone).length ? `<button class="task due" data-go2="actions"><span class="grow"><b>${open.filter(a => a.storeDone).length} action${open.filter(a => a.storeDone).length > 1 ? "s" : ""} marked done by a store</b><small>Check the proof and confirm</small></span><span class="chip warn">Check</span></button>` : ""}
-    ${drafts.length ? `<div class="sec"><h2>Visits in progress</h2></div><div class="stack">${drafts.map(v => { const sc = scoreOf(v); return `<button class="task due" data-open="${esc(v.id)}"><span class="grow"><b>${esc((store(v.store) || {}).name || "Store")}</b><small>${fmtD(v.date)} · ${sc.done} of ${sc.total} answered · pre-work ${pwCount(v.id)}/${METRICS.length}</small></span><span class="chip warn">Continue</span></button>`; }).join("")}</div>` : ""}
+    ${drafts.length ? `<div class="sec"><h2>Visits in progress</h2></div><div class="stack">${drafts.map(v => { const sc = scoreOf(v); return `<div class="row" style="flex-wrap:nowrap;gap:8px"><button class="task due grow" data-open="${esc(v.id)}"><span class="grow"><b>${esc((store(v.store) || {}).name || "Store")}</b><small>${fmtD(v.date)} · ${sc.done} of ${sc.total} answered · pre-work ${pwCount(v.id)}/${METRICS.length}</small></span><span class="chip warn">Continue</span></button><button class="btn sm bad" data-del="${esc(v.id)}" aria-label="Delete this visit">Delete</button></div>`; }).join("")}</div>` : ""}
     <div class="sec"><h2>Stores</h2><span>${stores().length}</span></div>
     <div class="list">${stores().map(s => { const vs = visitsOf(s.id).filter(v => v.status === "done"), last = vs[0], sc = last ? scoreOf(last) : null, prev = vs[1] ? scoreOf(vs[1]).overall : null, o = Object.values(S.actions).filter(a => a.store === s.id && a.status !== "Closed").length;
       return `<div class="row"><span class="grow"><b>${esc(s.name)}</b><div class="small muted">${last ? `Last visit ${fmtD(last.date)}` : "Not visited yet"}${o ? ` · ${o} open action${o > 1 ? "s" : ""}` : ""}</div></span>${sc ? `<span class="band ${band(sc.overall)[1]} num">${pct(sc.overall)}</span>${prev !== null ? `<span class="small num" style="color:var(--${sc.overall >= prev ? "ok" : "bad"})">${sc.overall >= prev ? "▲" : "▼"} ${Math.abs(Math.round((sc.overall - prev) * 100))}</span>` : ""}` : ""}</div>`; }).join("") || `<div class="muted">No stores yet. Add one under Stores.</div>`}</div>
     <div class="sec"><h2>Completed visits</h2></div>
-    <div class="list">${done.slice(0, 40).map(v => { const sc = scoreOf(v); return `<button class="row" data-view="${esc(v.id)}" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>${esc((store(v.store) || {}).name || "Store")}</b><div class="small muted">${fmtD(v.date)} · ${esc(((S.cfg.visitors || {})[v.visitor] || {}).name || "")}</div></span><span class="band ${band(sc.overall)[1]} num">${pct(sc.overall)}</span></button>`; }).join("") || `<div class="muted">Nothing yet.</div>`}</div>`;
+    <div class="list">${done.slice(0, 40).map(v => { const sc = scoreOf(v); return `<div class="row" style="flex-wrap:nowrap"><button class="grow row" data-view="${esc(v.id)}" style="text-align:start;background:none;border:0;padding:0;flex-wrap:nowrap"><span class="grow"><b>${esc((store(v.store) || {}).name || "Store")}</b><div class="small muted">${fmtD(v.date)} · ${esc(((S.cfg.visitors || {})[v.visitor] || {}).name || "")}</div></span><span class="band ${band(sc.overall)[1]} num">${pct(sc.overall)}</span></button><button class="pill" data-del="${esc(v.id)}" aria-label="Delete this visit" style="min-height:36px;padding:6px 12px;color:var(--bad)">Delete</button></div>`; }).join("") || `<div class="muted">Nothing yet.</div>`}</div>`;
 };
 HOOKS.home = app => {
   $("#hmNew", app).onclick = newVisitSheet; app.querySelectorAll("[data-go2]").forEach(b => b.onclick = () => go(b.dataset.go2));
   app.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openVisit(b.dataset.open));
+  app.querySelectorAll("[data-del]").forEach(b => b.onclick = () => deleteVisitAsk(b.dataset.del));
   app.querySelectorAll("[data-view]").forEach(b => b.onclick = () => openVisit(b.dataset.view, "result"));
 };
 function newVisitSheet() {
@@ -333,6 +364,8 @@ function newVisitSheet() {
 }
 async function openVisit(id, step) { if (!S.visits[id]) return; W = { id, step: step || "info", q: 0 }; if (!step) { const v = S.visits[id], first = QS.findIndex(q => !(v.ans[q.id] && v.ans[q.id].v)); if (Object.keys(v.ans).length) { W.step = first < 0 ? "summary" : "q"; W.q = Math.max(0, first); } } R = { view: "visit" }; await Data.loadPhotos(id); window.scrollTo(0, 0); render(); }
 const closeVisit = () => { W = null; go("home"); };
+function deleteVisitAsk(id) { const v = S.visits[id]; if (!v) return; const n = actionsOf(id).length;
+  ask("Delete this visit?", `${(store(v.store) || {}).name || "Store"}, ${longD(v.date)}. Its answers, photos, pre-work${n ? ` and ${n} action${n > 1 ? "s" : ""}` : ""} are removed. This cannot be undone.`, "Delete the visit", () => { if (W && W.id === id) W = null; if (DB) DB.doc("sv_prework/" + id).delete().catch(() => {}); delete S.prework[id]; Data.delVisit(id); toast("Visit deleted"); go("home"); }, true); }
 
 /* ===================== filling in a visit ===================== */
 let saveT = null;
@@ -384,7 +417,7 @@ function visitView(app) {
   } else {
     const [bl, bc] = band(sc.overall), prev = prevVisit(v), psc = prev ? scoreOf(prev) : null, acts = actionsOf(W.id), left = QS.filter(q => !(v.ans[q.id] && v.ans[q.id].v));
     const repeat = prev ? QS.filter(q => (v.ans[q.id] || {}).v === "n" && (prev.ans[q.id] || {}).v === "n") : [];
-    body = `<div class="card stack"><div class="row"><div class="grow"><div class="muted small">Overall visit score</div><div class="score num">${sc.any ? pct(sc.overall) : "–"}</div></div><div class="stack" style="gap:6px;align-items:flex-end">${sc.any ? `<span class="band ${bc}">${bl}</span>` : ""}${psc ? `<span class="small num" style="color:var(--${sc.overall >= psc.overall ? "ok" : "bad"})">${sc.overall >= psc.overall ? "▲" : "▼"} ${Math.abs(Math.round((sc.overall - psc.overall) * 100))} points since ${fmtD(prev.date)}</span>` : ""}</div></div>
+    body = `<div class="hero"><div class="row"><div class="grow"><div class="muted small">Overall visit score</div><div class="score num">${sc.any ? pct(sc.overall) : "–"}</div></div><div class="stack" style="gap:6px;align-items:flex-end">${sc.any ? `<span class="band ${bc}">${bl}</span>` : ""}${psc ? `<span class="small num" style="color:var(--${sc.overall >= psc.overall ? "ok" : "bad"})">${sc.overall >= psc.overall ? "▲" : "▼"} ${Math.abs(Math.round((sc.overall - psc.overall) * 100))} points since ${fmtD(prev.date)}</span>` : ""}</div></div>
         <div class="row" style="gap:6px"><span class="chip ok num">${sc.y} Yes</span><span class="chip bad num">${sc.n} No</span><span class="chip num">${sc.done - sc.y - sc.n} N.A</span>${left.length ? `<span class="chip warn num">${left.length} not answered</span>` : ""}</div></div>
       <div class="list">${SECTIONS.map(([name], i) => { const s = sc.secs[i], [l2, c2] = band(s.score); return `<button class="row" data-sec="${i}" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>${esc(name)}</b><div class="small muted num">${s.y} Yes · ${s.n} No · ${s.na} N.A${psc ? ` · last visit ${pct(psc.secs[i].score)}` : ""}</div></span>${s.y + s.n ? `<span class="band ${c2} num">${pct(s.score)}</span>` : `<span class="chip">–</span>`}</button>`; }).join("")}</div>
       ${repeat.length ? `<div class="card stack" style="border-inline-start:6px solid var(--bad)"><b>Still a "No" since the last visit (${repeat.length})</b>${repeat.map(q => `<div class="small">Q${q.n}. ${esc(q.text)}</div>`).join("")}</div>` : ""}
@@ -395,7 +428,7 @@ function visitView(app) {
       <p class="small muted">${acts.length} action${acts.length === 1 ? "" : "s"} raised for the store. Follow them up on the Actions page.</p>`;
     foot = `<button class="btn alt" id="vBack">Back</button><button class="btn" id="vClose">Done</button>`;
   }
-  app.innerHTML = `<div class="wiz" style="position:static;min-height:100vh"><header><button class="pill" id="vX" aria-label="Close">✕</button><div class="t">${esc(st.name)}</div><span class="chip num">${sc.any ? pct(sc.overall) : "–"}</span><button class="pill" id="vIdx">Sections</button></header>
+  app.innerHTML = `<div class="wiz" style="position:static;min-height:100vh"><header><button class="pill" id="vX" aria-label="Close">✕</button><img class="logo" style="width:24px;height:24px" src="logo-w.png" alt="On"><div class="t">${esc(st.name)}</div><span class="chip num">${sc.any ? pct(sc.overall) : "–"}</span><button class="pill" id="vIdx">Sections</button></header>
     <div class="prog"><i style="width:${Math.round(prog * 100)}%"></i></div><div class="body">${v.status === "done" && W.step !== "result" ? `<div class="banner">This visit is marked complete. Changes you make here are still saved.</div>` : ""}${body}</div><footer style="position:sticky;bottom:0;background:var(--bg)">${foot}</footer></div>`;
   const edit = fn => { fn(v); saveSoon(); };
   $("#vX", app).onclick = () => { saveNow(); closeVisit(); };
@@ -431,7 +464,7 @@ function visitView(app) {
     $("#rpMail", app).href = `mailto:${encodeURIComponent(st.email || "")}?subject=${encodeURIComponent(`Store Visit Report - ${st.name} - ${longD(v.date)}`)}&body=${encodeURIComponent(mailText(W.id))}`;
     const dn = $("#rpDone", app); if (dn) dn.onclick = () => { v.status = "done"; v.doneAt = Date.now(); saveNow(); toast("Visit marked complete"); render(); };
     const ro = $("#rpReopen", app); if (ro) ro.onclick = () => { v.status = "draft"; saveNow(); render(); };
-    $("#rpDel", app).onclick = () => ask("Delete this visit?", "The answers, photos and actions of this visit are removed. This cannot be undone.", "Delete", () => { const id = W.id; W = null; Data.delVisit(id); go("home"); }, true);
+    $("#rpDel", app).onclick = () => deleteVisitAsk(W.id);
   }
 }
 function sectionsSheet() {
@@ -439,8 +472,8 @@ function sectionsSheet() {
   m.innerHTML = `<div class="sheet"><div class="row"><h2 class="grow">Go to</h2><button class="pill" id="ssX">✕</button></div><div class="list">
     <button class="row" data-j="info" style="text-align:start;background:none;border:0;width:100%"><span class="grow"><b>Visit details</b></span></button><button class="row" data-j="prework" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>Pre-work</b></span></button>
     ${SECTIONS.map(([name], i) => `<button class="row" data-js="${i}" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>${i + 2}. ${esc(name)}</b></span><span class="chip num ${sc.secs[i].done === sc.secs[i].total ? "ok" : ""}">${sc.secs[i].done}/${sc.secs[i].total}</span></button>`).join("")}
-    <button class="row" data-j="summary" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>9. Visit summary</b></span></button><button class="row" data-j="result" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>Result and report</b></span></button></div></div>`;
-  document.body.appendChild(m); $("#ssX", m).onclick = () => m.remove();
+    <button class="row" data-j="summary" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>9. Visit summary</b></span></button><button class="row" data-j="result" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>Result and report</b></span></button></div><button class="btn bad" id="ssDel">Delete this visit</button></div>`;
+  document.body.appendChild(m); $("#ssX", m).onclick = () => m.remove(); $("#ssDel", m).onclick = () => { m.remove(); deleteVisitAsk(W.id); };
   const jump = fn => { saveNow(); fn(); m.remove(); window.scrollTo(0, 0); render(); };
   m.querySelectorAll("[data-j]").forEach(b => b.onclick = () => jump(() => { W.step = b.dataset.j; }));
   m.querySelectorAll("[data-js]").forEach(b => b.onclick = () => jump(() => { W.step = "q"; const first = QS.findIndex(q => q.si === +b.dataset.js && !(v.ans[q.id] && v.ans[q.id].v)); W.q = first >= 0 ? first : QS.findIndex(q => q.si === +b.dataset.js); }));
@@ -523,7 +556,7 @@ function storeView(app) {
   if (!st || st.active === false) { app.innerHTML = `<main><div class="card stack"><h1>Store Visit</h1><p>This store link is not valid. Ask the visitor to share the link again.</p></div></main>`; return; }
   if (!SM.ok) { try { SM.ok = !!st.pin && localStorage.getItem("sv-store-ok-" + SID) === st.pin; } catch (e) {} }
   if (!SM.ok) {
-    app.innerHTML = `<main><div class="card stack"><h1>${esc(st.name)}</h1><p class="muted">Store Visit page for the store team.</p>
+    app.innerHTML = `<main><div class="brand"><img class="logo" src="logo-w.png" alt="On"><b>${esc(st.name)}</b><span>Store Visit page for the store team</span></div><div class="card stack">
       <div class="field"><label for="spN">Your name</label><input class="in" id="spN" value="${esc(SM.name)}"></div>
       <div class="field"><label for="spP">Store PIN (4 digits)</label><input class="in num" id="spP" inputmode="numeric" maxlength="4" autocomplete="off"></div>
       <button class="btn" id="spGo">Open</button><p class="small" id="spMsg" style="color:var(--bad)"></p></div></main>`;
@@ -548,7 +581,7 @@ function storeView(app) {
       <div class="thumbs">${ph.map(p => `<div><img src="${p.data}" alt="Proof photo" data-big="1"><button data-delap="${esc(p.id)}" aria-label="Remove photo">✕</button></div>`).join("")}</div>
       ${ph.length < 2 ? `<label class="btn alt" style="display:flex;align-items:center;justify-content:center;cursor:pointer">+ Add a proof photo (${ph.length}/2)<input type="file" accept="image/*" data-addap="1" style="position:absolute;width:1px;height:1px;opacity:0"></label>` : ""}
       ${a.storeDone ? `<button class="btn sm alt" data-undo="1">Not finished after all</button>` : `<button class="btn" data-done="1">Mark as done</button>`}</div>`; };
-  app.innerHTML = `<div class="top"><div class="who"><b>${esc(st.name)}</b><span>Store Visit · ${esc(SM.name)}</span></div></div><main>
+  app.innerHTML = `<div class="top"><img class="logo" src="logo-w.png" alt="On"><div class="who"><b>${esc(st.name)}</b><span>Store Visit · ${esc(SM.name)}</span></div></div><main>
     <div class="sec"><h2>Pre-work to fill</h2><span>${waiting.length}</span></div>${waiting.map(pwCard).join("") || `<div class="card muted">No visit is waiting for pre-work.</div>`}
     <div class="sec"><h2>Actions for your store</h2><span>${open.length} open</span></div><div class="stack">${open.map(actCard).join("") || `<div class="card muted">No open actions.</div>`}</div>
     ${closed.length ? `<details class="card"><summary>${closed.length} closed action${closed.length > 1 ? "s" : ""}</summary><div class="list" style="margin-top:10px">${closed.map(a => `<div class="row"><span class="grow small">${esc(a.text)}</span><span class="small muted num">${fmtD(a.closed)}</span></div>`).join("")}</div></details>` : ""}
