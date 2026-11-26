@@ -191,28 +191,32 @@ function scoreOf(visit) {
 }
 
 /* ===================== data ===================== */
-const S = { mode: "loading", ready: false, cfg: null, visits: {}, actions: {}, photos: {} };
+const S = { mode: "loading", ready: false, cfg: null, visits: {}, actions: {}, photos: {}, prework: {} };
+const SID = new URLSearchParams(location.search).get("store");          // set when the page is opened with a store link
 let DB = null, ME = null;
 const LS = "sv-local-v1";
-const lsSave = () => { if (S.mode !== "local") return; try { localStorage.setItem(LS, JSON.stringify({ cfg: S.cfg, visits: S.visits, actions: S.actions })); } catch (e) {} };
+const lsSave = () => { if (S.mode !== "local") return; try { localStorage.setItem(LS, JSON.stringify({ cfg: S.cfg, visits: S.visits, actions: S.actions, prework: S.prework })); } catch (e) {} };
 const queues = {};
 function qWrite(path, fn) { const p = (queues[path] || Promise.resolve()).then(fn).catch(e => { console.error("write failed", path, e); toast("Could not save. Check the connection and try again."); }); queues[path] = p; return p; }
 function dataInit() {
   if (window.SB_FIREBASE && window.SB_FIREBASE.projectId && window.firebase) { try { firebase.initializeApp(window.SB_FIREBASE); DB = firebase.firestore(); } catch (e) { console.error(e); DB = null; } }
-  if (!DB) { S.mode = "local"; try { const d = JSON.parse(localStorage.getItem(LS) || "null"); if (d) { S.cfg = d.cfg; S.visits = d.visits || {}; S.actions = d.actions || {}; } } catch (e) {} S.ready = true; render(); return; }
+  if (!DB) { S.mode = "local"; try { const d = JSON.parse(localStorage.getItem(LS) || "null"); if (d) { S.cfg = d.cfg; S.visits = d.visits || {}; S.actions = d.actions || {}; S.prework = d.prework || {}; } } catch (e) {} S.ready = true; render(); return; }
   S.mode = "cloud"; const err = e => { console.error("db", e); S.dbError = true; soft(); };
   setTimeout(() => { if (!S.ready) { S.slow = true; soft(); } }, 10000);
   DB.doc("sv_cfg/main").onSnapshot(s => { S.cfg = s.exists ? clone(s.data()) : null; if (!s.metadata.fromCache || s.exists) S.ready = true; soft(); }, err);
   DB.collection("sv_visit").onSnapshot(q => { const keep = W ? W.id : null; q.docChanges().forEach(c => { if (c.type === "removed") delete S.visits[c.doc.id]; else if (c.doc.id !== keep || !S.visits[keep]) S.visits[c.doc.id] = clone(c.doc.data()); }); soft(); }, err);
   DB.collection("sv_action").onSnapshot(q => { S.actions = {}; q.docs.forEach(d => { S.actions[d.id] = clone(d.data()); }); soft(); }, err);
+  DB.collection("sv_prework").onSnapshot(q => { S.prework = {}; q.docs.forEach(d => { S.prework[d.id] = clone(d.data()); }); soft(); }, err);
 }
 const Data = {
   saveCfg(cfg) { S.cfg = clone(cfg); lsSave(); if (DB) return qWrite("cfg", () => DB.doc("sv_cfg/main").set(clone(cfg))); },
   saveVisit(id) { const v = S.visits[id]; if (!v) return; v.upd = Date.now(); lsSave(); if (DB) return qWrite("v" + id, () => DB.doc("sv_visit/" + id).set(clone(v))); },
   delVisit(id) { delete S.visits[id]; Object.entries(S.actions).filter(([, a]) => a.visit === id).forEach(([aid]) => Data.delAction(aid)); Object.keys(S.photos[id] || {}).forEach(pid => { if (DB) DB.doc("sv_photo/" + pid).delete().catch(() => {}); }); delete S.photos[id]; lsSave(); if (DB) return qWrite("v" + id, () => DB.doc("sv_visit/" + id).delete()); },
   saveAction(id, a) { S.actions[id] = clone(a); lsSave(); if (DB) return qWrite("a" + id, () => DB.doc("sv_action/" + id).set(clone(a))); },
+  patchAction(id, p) { if (!S.actions[id]) return; Object.assign(S.actions[id], clone(p)); lsSave(); if (DB) return qWrite("a" + id, () => DB.doc("sv_action/" + id).set(clone(p), { merge: true })); },
+  patchPrework(vid, p) { S.prework[vid] = Object.assign({}, S.prework[vid], clone(p)); lsSave(); if (DB) return qWrite("w" + vid, () => DB.doc("sv_prework/" + vid).set(clone(p), { merge: true })); },
   delAction(id) { delete S.actions[id]; lsSave(); if (DB) return qWrite("a" + id, () => DB.doc("sv_action/" + id).delete()); },
-  async loadPhotos(visitId) { if (S.photos[visitId]) return S.photos[visitId]; S.photos[visitId] = {}; if (DB) { try { const q = await DB.collection("sv_photo").where("visit", "==", visitId).get(); q.docs.forEach(d => { S.photos[visitId][d.id] = d.data(); }); } catch (e) { console.error(e); toast("Photos could not be loaded."); } } return S.photos[visitId]; },
+  async loadPhotos(visitId, fresh) { if (S.photos[visitId] && !(fresh && DB)) return S.photos[visitId]; S.photos[visitId] = S.photos[visitId] || {}; if (DB) { try { const q = await DB.collection("sv_photo").where("visit", "==", visitId).get(); q.docs.forEach(d => { S.photos[visitId][d.id] = d.data(); }); } catch (e) { console.error(e); toast("Photos could not be loaded."); } } return S.photos[visitId]; },
   savePhoto(visitId, pid, doc) { (S.photos[visitId] = S.photos[visitId] || {})[pid] = doc; if (DB) return qWrite("p" + pid, () => DB.doc("sv_photo/" + pid).set(doc)); },
   delPhoto(visitId, pid) { if (S.photos[visitId]) delete S.photos[visitId][pid]; if (DB) return qWrite("p" + pid, () => DB.doc("sv_photo/" + pid).delete()); },
 };
@@ -222,6 +226,13 @@ const visitors = () => Object.entries((S.cfg && S.cfg.visitors) || {}).map(([id,
 const visitsOf = sid => Object.entries(S.visits).map(([id, v]) => ({ id, ...v })).filter(v => !sid || v.store === sid).sort((a, b) => (b.date + b.at).localeCompare(a.date + a.at));
 const actionsOf = vid => Object.entries(S.actions).map(([id, a]) => ({ id, ...a })).filter(a => a.visit === vid).sort((a, b) => +a.q.slice(1) - +b.q.slice(1));
 const actionRef = (vid, q) => { const i = actionsOf(vid).findIndex(a => a.q === q); return i < 0 ? "" : String(i + 1); };
+const pwOf = vid => Object.assign({}, (S.visits[vid] || {}).prework, S.prework[vid]);          // pre-work: the store's numbers, or the visitor's own
+const pwCount = vid => METRICS.filter((m, i) => { const p = pwOf(vid)["m" + i]; return p && String(p.a ?? "").trim() !== ""; }).length;
+const pinOf = s => (s && s.pin) || "";
+const newPin = () => String(Math.floor(1000 + Math.random() * 9000));
+const storeLink = sid => location.origin + location.pathname + "?store=" + encodeURIComponent(sid);
+const actPhotos = (vid, aid) => Object.entries(S.photos[vid] || {}).map(([id, p]) => ({ id, ...p })).filter(p => p.a === aid).sort((a, b) => a.at - b.at);
+async function shareText(text, title) { try { if (navigator.share) { await navigator.share({ title, text }); return; } } catch (e) { if (e && e.name === "AbortError") return; } try { await navigator.clipboard.writeText(text); toast("Copied. Paste it in a message to the store."); } catch (e) { ask(title, text, "OK", () => {}); } }
 const prevVisit = v => visitsOf(v.store).filter(x => x.id !== v.id && x.status === "done" && (x.date + x.at) < (v.date + v.at))[0] || null;
 
 /* ===================== photos ===================== */
@@ -243,6 +254,7 @@ const TABS = [["home", "Home"], ["actions", "Actions"], ["stores", "Stores"]];
 function render() {
   const app = $("#app");
   if (!S.ready) { app.innerHTML = `<main><div class="card stack"><b>Loading…</b>${S.slow ? `<p class="muted small">The data can't be reached yet. Still trying.</p>` : ""}</div></main>`; return; }
+  if (SID) return storeView(app);
   if (!S.cfg || !visitors().length) return setupView(app);
   if (!ME || !visitors().some(v => v.id === ME)) { const vs = visitors(); if (vs.length === 1) ME = vs[0].id; else return whoView(app); }
   if (W && R.view === "visit") return visitView(app);
@@ -264,7 +276,7 @@ function setupView(app) {
     <button class="btn" id="suGo">Start</button><p class="small" id="suMsg" style="color:var(--bad)"></p></div></main>`;
   $("#suGo", app).onclick = () => { const v = $("#suV", app).value.trim(), s = $("#suS", app).value.trim(); if (!v || !s) { $("#suMsg", app).textContent = "Your name and the store name are needed."; return; }
     const vid = "v" + rid(); ME = vid; try { localStorage.setItem("sv-me", vid); } catch (e) {}
-    Data.saveCfg({ visitors: { [vid]: { name: v, active: true } }, stores: { ["s" + rid()]: { name: s, code: $("#suC", app).value.trim(), manager: $("#suM", app).value.trim(), email: $("#suE", app).value.trim(), active: true } } }); render(); };
+    Data.saveCfg({ visitors: { [vid]: { name: v, active: true } }, stores: { ["s" + rid()]: { name: s, code: $("#suC", app).value.trim(), manager: $("#suM", app).value.trim(), email: $("#suE", app).value.trim(), pin: newPin(), active: true } } }); render(); };
 }
 function whoView(app) {
   app.innerHTML = `<main><h1>Who is visiting?</h1><div class="stack">${visitors().map(v => `<button class="task" data-v="${esc(v.id)}"><span class="grow"><b>${esc(v.name)}</b></span></button>`).join("")}</div></main>`;
@@ -277,7 +289,8 @@ VIEWS.home = () => {
   const avg = done.length ? done.reduce((a, v) => a + scoreOf(v).overall, 0) / done.length : null;
   return `<button class="btn" id="hmNew" style="font-size:1.1rem">+ Start a store visit</button>
     <div class="kpis"><div class="kpi"><b class="num">${done.length}</b><span>visits completed</span></div><div class="kpi"><b class="num">${pct(avg)}</b><span>average score</span></div><div class="kpi"><b class="num" style="color:${over.length ? "var(--bad)" : "inherit"}">${open.length}</b><span>open actions${over.length ? ` · ${over.length} overdue` : ""}</span></div></div>
-    ${drafts.length ? `<div class="sec"><h2>Visits in progress</h2></div><div class="stack">${drafts.map(v => { const sc = scoreOf(v); return `<button class="task due" data-open="${esc(v.id)}"><span class="grow"><b>${esc((store(v.store) || {}).name || "Store")}</b><small>${fmtD(v.date)} · ${sc.done} of ${sc.total} answered</small></span><span class="chip warn">Continue</span></button>`; }).join("")}</div>` : ""}
+    ${open.filter(a => a.storeDone).length ? `<button class="task due" data-go2="actions"><span class="grow"><b>${open.filter(a => a.storeDone).length} action${open.filter(a => a.storeDone).length > 1 ? "s" : ""} marked done by a store</b><small>Check the proof and confirm</small></span><span class="chip warn">Check</span></button>` : ""}
+    ${drafts.length ? `<div class="sec"><h2>Visits in progress</h2></div><div class="stack">${drafts.map(v => { const sc = scoreOf(v); return `<button class="task due" data-open="${esc(v.id)}"><span class="grow"><b>${esc((store(v.store) || {}).name || "Store")}</b><small>${fmtD(v.date)} · ${sc.done} of ${sc.total} answered · pre-work ${pwCount(v.id)}/${METRICS.length}</small></span><span class="chip warn">Continue</span></button>`; }).join("")}</div>` : ""}
     <div class="sec"><h2>Stores</h2><span>${stores().length}</span></div>
     <div class="list">${stores().map(s => { const vs = visitsOf(s.id).filter(v => v.status === "done"), last = vs[0], sc = last ? scoreOf(last) : null, prev = vs[1] ? scoreOf(vs[1]).overall : null, o = Object.values(S.actions).filter(a => a.store === s.id && a.status !== "Closed").length;
       return `<div class="row"><span class="grow"><b>${esc(s.name)}</b><div class="small muted">${last ? `Last visit ${fmtD(last.date)}` : "Not visited yet"}${o ? ` · ${o} open action${o > 1 ? "s" : ""}` : ""}</div></span>${sc ? `<span class="band ${band(sc.overall)[1]} num">${pct(sc.overall)}</span>${prev !== null ? `<span class="small num" style="color:var(--${sc.overall >= prev ? "ok" : "bad"})">${sc.overall >= prev ? "▲" : "▼"} ${Math.abs(Math.round((sc.overall - prev) * 100))}</span>` : ""}` : ""}</div>`; }).join("") || `<div class="muted">No stores yet. Add one under Stores.</div>`}</div>
@@ -285,7 +298,7 @@ VIEWS.home = () => {
     <div class="list">${done.slice(0, 40).map(v => { const sc = scoreOf(v); return `<button class="row" data-view="${esc(v.id)}" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>${esc((store(v.store) || {}).name || "Store")}</b><div class="small muted">${fmtD(v.date)} · ${esc(((S.cfg.visitors || {})[v.visitor] || {}).name || "")}</div></span><span class="band ${band(sc.overall)[1]} num">${pct(sc.overall)}</span></button>`; }).join("") || `<div class="muted">Nothing yet.</div>`}</div>`;
 };
 HOOKS.home = app => {
-  $("#hmNew", app).onclick = newVisitSheet;
+  $("#hmNew", app).onclick = newVisitSheet; app.querySelectorAll("[data-go2]").forEach(b => b.onclick = () => go(b.dataset.go2));
   app.querySelectorAll("[data-open]").forEach(b => b.onclick = () => openVisit(b.dataset.open));
   app.querySelectorAll("[data-view]").forEach(b => b.onclick = () => openVisit(b.dataset.view, "result"));
 };
@@ -324,11 +337,14 @@ function visitView(app) {
     body = `<div class="q">Visit details</div><div class="field"><label>Store</label><input class="in" value="${esc(st.name)}" disabled></div>
       <div class="field"><label for="vfD">Visit date</label><input class="in" type="date" id="vfD" data-f="date" value="${esc(v.date)}"></div>
       <div class="field"><label for="vfM">Store manager</label><input class="in" id="vfM" data-f="storeManager" value="${esc(v.storeManager)}"></div>
-      <div class="field"><label for="vfR">Retail operations</label><input class="in" id="vfR" data-f="retailOps" value="${esc(v.retailOps)}"></div>`;
+      <div class="field"><label for="vfR">Retail operations</label><input class="in" id="vfR" data-f="retailOps" value="${esc(v.retailOps)}"></div>
+      <div class="card stack"><div class="row"><b class="grow">Pre-work from the store</b><span class="chip ${pwCount(W.id) === METRICS.length ? "ok" : pwCount(W.id) ? "warn" : ""} num">${pwCount(W.id)} of ${METRICS.length} filled</span></div>
+        ${(S.prework[W.id] || {}).sentAt ? `<p class="small muted">Sent by ${esc(S.prework[W.id].by || "the store")} on ${fmtD(ymd(new Date(S.prework[W.id].sentAt)))}</p>` : `<p class="small muted">Send the store its link. The manager fills the performance numbers while you get ready.</p>`}
+        <button class="btn alt" id="vAskPw">Ask the store to fill the pre-work</button></div>`;
     foot = `<button class="btn alt" id="vBack" disabled>Back</button><button class="btn" id="vNext">Next</button>`;
   } else if (W.step === "prework") {
-    body = `<div class="q">Pre-work: performance and profitability</div><p class="hint">Fill in what you have. Anything left empty stays empty on the report.</p>
-      ${METRICS.map((m, i) => { const p = (v.prework || {})["m" + i] || {}; return `<div class="card stack"><b>${esc(m)}</b><div class="row">${[["a", "Actual"], ["ly", "LY"], ["t", "Target"]].map(([k, l]) => `<div class="field grow" style="min-width:80px"><label for="pw${i}${k}">${l}</label><input class="in num" id="pw${i}${k}" inputmode="decimal" data-pw="m${i}:${k}" value="${esc(p[k] ?? "")}"></div>`).join("")}</div><input class="in" data-pw="m${i}:c" placeholder="Comment" value="${esc(p.c ?? "")}" aria-label="Comment"></div>`; }).join("")}`;
+    body = `<div class="q">Pre-work: performance and profitability</div><p class="hint">${(S.prework[W.id] || {}).sentAt ? `Filled by ${esc(S.prework[W.id].by || "the store")}. You can correct any number.` : "The store can fill these from its link. You can also fill or correct them here. Anything left empty stays empty on the report."}</p>
+      ${METRICS.map((m, i) => { const p = pwOf(W.id)["m" + i] || {}; return `<div class="card stack"><b>${esc(m)}</b><div class="row">${[["a", "Actual"], ["ly", "LY"], ["t", "Target"]].map(([k, l]) => `<div class="field grow" style="min-width:80px"><label for="pw${i}${k}">${l}</label><input class="in num" id="pw${i}${k}" inputmode="decimal" data-pw="m${i}:${k}" value="${esc(p[k] ?? "")}"></div>`).join("")}</div><input class="in" data-pw="m${i}:c" placeholder="Comment" value="${esc(p.c ?? "")}" aria-label="Comment"></div>`; }).join("")}`;
     foot = `<button class="btn alt" id="vBack">Back</button><button class="btn" id="vNext">Next</button>`;
   } else if (W.step === "q") {
     const q = QS[W.q], a = v.ans[q.id] || {}, ph = photosOf(W.id, q.id), act = actionsOf(W.id).find(x => x.q === q.id);
@@ -371,7 +387,8 @@ function visitView(app) {
   const bk = $("#vBack", app); if (bk) bk.onclick = () => move(-1);
   const cl = $("#vClose", app); if (cl) cl.onclick = () => { saveNow(); closeVisit(); };
   app.querySelectorAll("[data-f]").forEach(i => i.oninput = () => edit(x => { x[i.dataset.f] = i.value; }));
-  app.querySelectorAll("[data-pw]").forEach(i => i.oninput = () => edit(x => { const [m, k] = i.dataset.pw.split(":"); x.prework = x.prework || {}; x.prework[m] = Object.assign({}, x.prework[m], { [k]: i.value }); }));
+  app.querySelectorAll("[data-pw]").forEach(i => i.onchange = () => { const [m, k] = i.dataset.pw.split(":"); Data.patchPrework(W.id, { store: v.store, [m]: Object.assign({}, pwOf(W.id)[m], { [k]: i.value }) }); });
+  const ap = $("#vAskPw", app); if (ap) ap.onclick = () => askPrework(W.id);
   app.querySelectorAll("[data-sm]").forEach(i => i.oninput = () => edit(x => { x.summary = x.summary || {}; x.summary[i.dataset.sm] = i.value; }));
   if (W.step === "q") {
     const q = QS[W.q];
@@ -419,6 +436,12 @@ function mailText(vid) {
 }
 function downloadBlob(blob, name) { try { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); toast("PDF saved"); } catch (e) { toast("Saving files is not available here."); } }
 
+function askPrework(vid) {
+  const v = S.visits[vid], st = store(v.store); if (!st) return;
+  if (!st.pin) { const c = clone(S.cfg); c.stores[v.store].pin = newPin(); Data.saveCfg(c); }
+  const s2 = store(v.store);
+  shareText(`Store visit on ${longD(v.date)}.\nPlease fill the pre-work numbers before we start:\n${storeLink(v.store)}\nPIN: ${s2.pin}`, "Pre-work for the store visit");
+}
 /* ===================== actions ===================== */
 VIEWS.actions = () => {
   const f = R.f || "open", sid = R.sid || "", all = Object.entries(S.actions).map(([id, a]) => ({ id, ...a })).filter(a => (!sid || a.store === sid) && (f === "all" || a.status !== "Closed")).sort((a, b) => (a.due || "9").localeCompare(b.due || "9"));
@@ -429,23 +452,31 @@ VIEWS.actions = () => {
         <textarea class="in" data-k="text" rows="2" aria-label="Action">${esc(a.text)}</textarea>
         <div class="row"><div class="field grow"><label>Owner</label><input class="in" data-k="owner" value="${esc(a.owner)}"></div><div class="field"><label>Priority</label><select class="in" data-k="priority">${PRIOS.map(p => `<option ${a.priority === p ? "selected" : ""}>${p}</option>`).join("")}</select></div></div>
         <div class="row"><div class="field grow"><label>Due date</label><input class="in" type="date" data-k="due" value="${esc(a.due)}"></div><div class="field grow"><label>Status</label><select class="in" data-k="status">${STATI.map(p => `<option ${a.status === p ? "selected" : ""}>${p}</option>`).join("")}</select></div></div>
-        ${a.status === "Closed" ? `<span class="small muted">Closed on ${fmtD(a.closed)}</span>` : ""}</div>`; }).join("") || `<div class="card muted">No actions here. Every "No" in a visit creates one.</div>`}</div>`;
+        ${a.status === "Closed" ? `<span class="small muted">Closed on ${fmtD(a.closed)}</span>` : ""}
+        ${a.storeDone || a.storeNote ? `<div class="card stack" style="background:var(--surface-2,transparent)"><div class="row"><b class="grow">${a.storeDone ? "The store says this is done" : "Update from the store"}</b><span class="small muted">${esc(a.storeBy || "")}${a.storeAt ? " · " + fmtD(ymd(new Date(a.storeAt))) : ""}</span></div>${a.storeNote ? `<div class="small">${esc(a.storeNote)}</div>` : ""}
+          <div class="thumbs">${actPhotos(a.visit, a.id).map(p => `<div><img src="${p.data}" alt="Proof from the store" data-big="1"></div>`).join("")}</div>
+          ${a.storeDone && a.status !== "Closed" ? `<div class="row"><button class="btn sm grow" data-ok="${esc(a.id)}">Confirm closed</button><button class="btn sm alt grow" data-back="${esc(a.id)}">Not done yet</button></div>` : ""}</div>` : ""}</div>`; }).join("") || `<div class="card muted">No actions here. Every "No" in a visit creates one.</div>`}</div>`;
 };
 HOOKS.actions = app => {
   $("#acS", app).onchange = e => { R.sid = e.target.value; render(); };
   app.querySelectorAll("[data-af]").forEach(b => b.onclick = () => { R.f = b.dataset.af; render(); });
-  app.querySelectorAll("[data-act]").forEach(card => card.querySelectorAll("[data-k]").forEach(i => i.onchange = () => { const a = clone(S.actions[card.dataset.act]); a[i.dataset.k] = i.value; if (i.dataset.k === "status") a.closed = i.value === "Closed" ? today() : ""; Data.saveAction(card.dataset.act, a); }));
+  app.querySelectorAll("[data-ok]").forEach(b => b.onclick = () => { Data.patchAction(b.dataset.ok, { status: "Closed", closed: today() }); toast("Action closed"); render(); });
+  app.querySelectorAll("[data-back]").forEach(b => b.onclick = () => { Data.patchAction(b.dataset.back, { storeDone: false, status: "In Progress", sentBack: Date.now() }); toast("Sent back to the store"); render(); });
+  app.querySelectorAll("[data-big]").forEach(im => im.onclick = () => bigPhoto(im.src));
+  if (!HOOKS.actions.loaded) { HOOKS.actions.loaded = true; const vids = [...new Set(Object.values(S.actions).filter(a => a.storeDone || a.storeNote).map(a => a.visit))]; Promise.all(vids.map(x => Data.loadPhotos(x, true))).then(() => { if (vids.length && R.view === "actions") render(); }); }
+  app.querySelectorAll("[data-act]").forEach(card => card.querySelectorAll("[data-k]").forEach(i => i.onchange = () => { const p = { [i.dataset.k]: i.value }; if (i.dataset.k === "status") p.closed = i.value === "Closed" ? today() : ""; Data.patchAction(card.dataset.act, p); }));
 };
 
 /* ===================== stores and visitors ===================== */
-VIEWS.stores = () => `<h1>Stores</h1><p class="muted">Add a store whenever a new one opens. The e-mail is used when you send the report.</p>
-  <div class="list">${stores(true).map(s => `<button class="row" data-st="${esc(s.id)}" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>${esc(s.name)}</b><div class="small muted">${esc([s.code, s.manager, s.email].filter(Boolean).join(" · "))}${s.active === false ? " · not in use" : ""}</div></span><span class="chip">Edit</span></button>`).join("") || `<div class="muted">No stores yet.</div>`}</div>
+VIEWS.stores = () => `<h1>Stores</h1><p class="muted">Add a store whenever a new one opens. The e-mail is used when you send the report. Each store has its own link and PIN, where the manager fills the pre-work and updates the actions.</p>
+  <div class="list">${stores(true).map(s => `<button class="row" data-st="${esc(s.id)}" style="text-align:start;background:none;border-left:0;border-right:0;border-bottom:0;width:100%"><span class="grow"><b>${esc(s.name)}</b><div class="small muted">${esc([s.code, s.manager, s.email].filter(Boolean).join(" · "))}${s.active === false ? " · not in use" : ""}</div></span><span class="chip">Edit</span></button><div class="row" style="padding-top:0"><span class="grow small muted num">Store link PIN: <b>${esc(s.pin || "not set")}</b></span><button class="btn sm alt" data-sl="${esc(s.id)}">Share the store link</button></div>`).join("") || `<div class="muted">No stores yet.</div>`}</div>
   <button class="btn soft" id="stAdd">+ Add a store</button>
   <div class="sec"><h2>Visitors</h2></div><div class="list">${Object.entries(S.cfg.visitors || {}).map(([id, v]) => `<div class="row"><input class="in grow" data-vn="${esc(id)}" value="${esc(v.name)}" aria-label="Visitor name"><label class="row small" style="gap:6px"><input type="checkbox" data-va="${esc(id)}" ${v.active !== false ? "checked" : ""} ${id === ME ? "disabled" : ""} style="width:20px;height:20px">In use</label></div>`).join("")}
   <div class="row"><input class="in grow" id="vnNew" placeholder="Name of another visitor"><button class="btn sm" id="vnAdd">Add</button></div></div>`;
 HOOKS.stores = app => {
   const save = fn => { const c = clone(S.cfg); fn(c); Data.saveCfg(c); render(); };
   app.querySelectorAll("[data-st]").forEach(b => b.onclick = () => storeSheet(b.dataset.st)); $("#stAdd", app).onclick = () => storeSheet(null);
+  app.querySelectorAll("[data-sl]").forEach(b => b.onclick = () => { const id = b.dataset.sl; if (!store(id).pin) { const c = clone(S.cfg); c.stores[id].pin = newPin(); Data.saveCfg(c); } const s = store(id); shareText(`Store Visit page for ${s.name}:\n${storeLink(id)}\nPIN: ${s.pin}`, "Store link"); render(); });
   app.querySelectorAll("[data-vn]").forEach(i => i.onchange = () => { if (i.value.trim()) save(c => { c.visitors[i.dataset.vn].name = i.value.trim(); }); });
   app.querySelectorAll("[data-va]").forEach(i => i.onchange = () => save(c => { c.visitors[i.dataset.va].active = i.checked; }));
   $("#vnAdd", app).onclick = () => { const n = $("#vnNew", app).value.trim(); if (n) save(c => { c.visitors["v" + rid()] = { name: n, active: true }; }); };
@@ -455,11 +486,65 @@ function storeSheet(id) {
   m.innerHTML = `<div class="sheet"><h2>${id ? "Edit store" : "New store"}</h2><div class="field"><label for="ssN">Store name</label><input class="in" id="ssN" value="${esc(s.name)}"></div>
     <div class="row"><div class="field grow"><label for="ssC">Store code</label><input class="in" id="ssC" value="${esc(s.code || "")}"></div><div class="field grow"><label for="ssM">Store manager</label><input class="in" id="ssM" value="${esc(s.manager || "")}"></div></div>
     <div class="field"><label for="ssE">Store e-mail</label><input class="in" id="ssE" type="email" value="${esc(s.email || "")}"></div>
+    <div class="field"><label for="ssP">PIN for the store link (4 digits)</label><input class="in num" id="ssP" inputmode="numeric" maxlength="4" value="${esc(s.pin || newPin())}"></div>
     <label class="row"><input type="checkbox" id="ssA" ${s.active !== false ? "checked" : ""} style="width:22px;height:22px"><span>In use</span></label><p class="small" id="ssMsg" style="color:var(--bad)"></p>
     <div class="row"><button class="btn alt grow" id="ssNo">Cancel</button><button class="btn grow" id="ssOk">Save</button></div></div>`;
   document.body.appendChild(m); $("#ssNo", m).onclick = () => m.remove();
   $("#ssOk", m).onclick = () => { const name = $("#ssN", m).value.trim(); if (!name) { $("#ssMsg", m).textContent = "The store name is needed."; return; }
-    const c = clone(S.cfg); c.stores = c.stores || {}; c.stores[id || "s" + rid()] = { name, code: $("#ssC", m).value.trim(), manager: $("#ssM", m).value.trim(), email: $("#ssE", m).value.trim(), active: $("#ssA", m).checked }; Data.saveCfg(c); m.remove(); render(); };
+    const c = clone(S.cfg); c.stores = c.stores || {}; c.stores[id || "s" + rid()] = { name, code: $("#ssC", m).value.trim(), manager: $("#ssM", m).value.trim(), email: $("#ssE", m).value.trim(), pin: /^\d{4}$/.test($("#ssP", m).value.trim()) ? $("#ssP", m).value.trim() : (s.pin || newPin()), active: $("#ssA", m).checked }; Data.saveCfg(c); m.remove(); render(); };
+}
+
+/* ===================== the store's own page (opened with the store link) ===================== */
+const SM = { ok: false, name: "", loaded: false };
+try { SM.name = localStorage.getItem("sv-store-name") || ""; } catch (e) {}
+function bigPhoto(src) { const m = document.createElement("div"); m.className = "modal"; m.innerHTML = `<div class="sheet" style="max-height:96%"><div class="row"><span class="grow"></span><button class="pill" id="bpX">✕</button></div><img src="${src}" alt="Photo" style="width:100%;border-radius:10px"></div>`; document.body.appendChild(m); $("#bpX", m).onclick = () => m.remove(); }
+function storeView(app) {
+  const st = S.cfg ? store(SID) : null;
+  if (!st || st.active === false) { app.innerHTML = `<main><div class="card stack"><h1>Store Visit</h1><p>This store link is not valid. Ask the visitor to share the link again.</p></div></main>`; return; }
+  if (!SM.ok) { try { SM.ok = !!st.pin && localStorage.getItem("sv-store-ok-" + SID) === st.pin; } catch (e) {} }
+  if (!SM.ok) {
+    app.innerHTML = `<main><div class="card stack"><h1>${esc(st.name)}</h1><p class="muted">Store Visit page for the store team.</p>
+      <div class="field"><label for="spN">Your name</label><input class="in" id="spN" value="${esc(SM.name)}"></div>
+      <div class="field"><label for="spP">Store PIN (4 digits)</label><input class="in num" id="spP" inputmode="numeric" maxlength="4" autocomplete="off"></div>
+      <button class="btn" id="spGo">Open</button><p class="small" id="spMsg" style="color:var(--bad)"></p></div></main>`;
+    $("#spGo", app).onclick = () => { const n = $("#spN", app).value.trim(), p = $("#spP", app).value.trim();
+      if (!n) { $("#spMsg", app).textContent = "Your name is needed."; return; } if (!st.pin || p !== st.pin) { $("#spMsg", app).textContent = "That PIN is not right. Ask the visitor for the store PIN."; return; }
+      SM.ok = true; SM.name = n; try { localStorage.setItem("sv-store-ok-" + SID, st.pin); localStorage.setItem("sv-store-name", n); } catch (e) {} render(); };
+    return;
+  }
+  const vs = visitsOf(SID), waiting = vs.filter(v => v.status !== "done"), done = vs.filter(v => v.status === "done");
+  const acts = Object.entries(S.actions).map(([id, a]) => ({ id, ...a })).filter(a => a.store === SID), open = acts.filter(a => a.status !== "Closed").sort((a, b) => (a.due || "9").localeCompare(b.due || "9")), closed = acts.filter(a => a.status === "Closed");
+  if (!SM.loaded) { SM.loaded = true; Promise.all([...new Set(acts.map(a => a.visit))].map(x => Data.loadPhotos(x, true))).then(() => soft()); }
+  const pwCard = v => { const pw = pwOf(v.id), sent = (S.prework[v.id] || {}).sentAt;
+    return `<div class="card stack" data-pwv="${esc(v.id)}"><div class="row"><span class="grow"><b>Visit on ${longD(v.date)}</b><div class="small muted">Performance and profitability numbers</div></span><span class="chip ${sent ? "ok" : pwCount(v.id) ? "warn" : ""} num">${sent ? "Sent ✓" : pwCount(v.id) + " of " + METRICS.length}</span></div>
+      ${METRICS.map((m, i) => { const p = pw["m" + i] || {}; return `<div class="stack" style="gap:6px;border-top:1px solid var(--line);padding-top:10px"><b>${esc(m)}</b><div class="row">${[["a", "Actual"], ["ly", "Last year"], ["t", "Target"]].map(([k, l]) => `<div class="field grow" style="min-width:80px"><label>${l}</label><input class="in num" inputmode="decimal" data-pw="m${i}:${k}" value="${esc(p[k] ?? "")}"></div>`).join("")}</div><input class="in" data-pw="m${i}:c" placeholder="Comment (optional)" value="${esc(p.c ?? "")}" aria-label="Comment for ${esc(m)}"></div>`; }).join("")}
+      <button class="btn" data-pwsend="${esc(v.id)}">${sent ? "Send the corrected numbers" : "Send to the visitor"}</button><p class="small muted">Your numbers are saved as you type. Leave a box empty if you do not have the number.</p></div>`; };
+  const actCard = a => { const q = QS.find(x => x.id === a.q) || { n: "" }, over = a.due && a.due < today(), ph = actPhotos(a.visit, a.id);
+    return `<div class="card stack" data-sa="${esc(a.id)}" style="border-inline-start:6px solid var(--${a.storeDone ? "ok" : over ? "bad" : "warn"})"><div class="row"><span class="grow small muted">Q${q.n} · ${esc(a.section)} · visit ${fmtD((S.visits[a.visit] || {}).date)}</span><span class="chip ${a.priority === "Critical" ? "bad" : a.priority === "High" ? "warn" : ""}">${esc(a.priority)}</span></div>
+      <b>${esc(a.text)}</b><div class="row small"><span class="grow">Owner: <b>${esc(a.owner || "-")}</b></span><span class="num" style="color:var(--${over ? "bad" : "muted"})">Due ${fmtD(a.due)}${over ? " · overdue" : ""}</span></div>
+      ${a.sentBack && !a.storeDone ? `<div class="banner">The visitor checked this and says it is not done yet.</div>` : ""}
+      ${a.storeDone ? `<div class="banner" style="background:var(--ok-soft,transparent);border-color:var(--ok);color:var(--ok)">Marked done by ${esc(a.storeBy || "the store")}. Waiting for the visitor to confirm.</div>` : `<div class="field"><label>Status</label><select class="in" data-sk="status">${["Open", "In Progress", "On Hold"].map(s => `<option ${a.status === s ? "selected" : ""}>${s}</option>`).join("")}</select></div>`}
+      <div class="field"><label>What was done</label><textarea class="in" rows="2" data-sk="storeNote" placeholder="Short note for the visitor">${esc(a.storeNote || "")}</textarea></div>
+      <div class="thumbs">${ph.map(p => `<div><img src="${p.data}" alt="Proof photo" data-big="1"><button data-delap="${esc(p.id)}" aria-label="Remove photo">✕</button></div>`).join("")}</div>
+      ${ph.length < 2 ? `<label class="btn alt" style="display:flex;align-items:center;justify-content:center;cursor:pointer">+ Add a proof photo (${ph.length}/2)<input type="file" accept="image/*" data-addap="1" style="position:absolute;width:1px;height:1px;opacity:0"></label>` : ""}
+      ${a.storeDone ? `<button class="btn sm alt" data-undo="1">Not finished after all</button>` : `<button class="btn" data-done="1">Mark as done</button>`}</div>`; };
+  app.innerHTML = `<div class="top"><div class="who"><b>${esc(st.name)}</b><span>Store Visit · ${esc(SM.name)}</span></div></div><main>
+    <div class="sec"><h2>Pre-work to fill</h2><span>${waiting.length}</span></div>${waiting.map(pwCard).join("") || `<div class="card muted">No visit is waiting for pre-work.</div>`}
+    <div class="sec"><h2>Actions for your store</h2><span>${open.length} open</span></div><div class="stack">${open.map(actCard).join("") || `<div class="card muted">No open actions.</div>`}</div>
+    ${closed.length ? `<details class="card"><summary>${closed.length} closed action${closed.length > 1 ? "s" : ""}</summary><div class="list" style="margin-top:10px">${closed.map(a => `<div class="row"><span class="grow small">${esc(a.text)}</span><span class="small muted num">${fmtD(a.closed)}</span></div>`).join("")}</div></details>` : ""}
+    <div class="sec"><h2>Visit reports</h2></div><div class="list">${done.map(v => { const sc = scoreOf(v); return `<div class="row"><span class="grow"><b>${longD(v.date)}</b><div class="small muted">${esc(v.retailOps || "")}</div></span><span class="band ${band(sc.overall)[1]} num">${pct(sc.overall)}</span><button class="btn sm alt" data-rep="${esc(v.id)}">View</button></div>`; }).join("") || `<div class="muted">No completed visit yet.</div>`}</div><p class="small muted" id="stMsg"></p></main>`;
+  app.querySelectorAll("[data-pwv]").forEach(card => { const vid = card.dataset.pwv;
+    card.querySelectorAll("[data-pw]").forEach(i => i.onchange = () => { const [m, k] = i.dataset.pw.split(":"); Data.patchPrework(vid, { store: SID, by: SM.name, [m]: Object.assign({}, pwOf(vid)[m], { [k]: i.value.trim() }) }); const ch = $(".chip", card); if (ch && !(S.prework[vid] || {}).sentAt) { ch.textContent = pwCount(vid) + " of " + METRICS.length; ch.className = "chip num " + (pwCount(vid) ? "warn" : ""); } });
+    $("[data-pwsend]", card).onclick = () => { card.querySelectorAll("[data-pw]").forEach(i => { const [m, k] = i.dataset.pw.split(":"); const cur = pwOf(vid)[m] || {}; if ((cur[k] ?? "") !== i.value.trim()) Data.patchPrework(vid, { [m]: Object.assign({}, cur, { [k]: i.value.trim() }) }); });
+      if (!pwCount(vid)) { toast("Fill at least one Actual number first."); return; } Data.patchPrework(vid, { store: SID, by: SM.name, sentAt: Date.now() }); toast("Sent to the visitor"); render(); }; });
+  app.querySelectorAll("[data-sa]").forEach(card => { const id = card.dataset.sa, a = S.actions[id]; const note = () => $('[data-sk="storeNote"]', card).value.trim();
+    card.querySelectorAll("[data-sk]").forEach(i => i.onchange = () => Data.patchAction(id, { [i.dataset.sk]: i.value.trim(), storeBy: SM.name, storeAt: Date.now() }));
+    const dn = $("[data-done]", card); if (dn) dn.onclick = () => { if (!note() && !actPhotos(a.visit, id).length) { toast("Add a short note or a photo first."); return; } Data.patchAction(id, { storeDone: true, storeNote: note(), storeBy: SM.name, storeAt: Date.now(), status: "In Progress" }); toast("Sent to the visitor to confirm"); render(); };
+    const un = $("[data-undo]", card); if (un) un.onclick = () => { Data.patchAction(id, { storeDone: false }); render(); };
+    const ad = $("[data-addap]", card); if (ad) ad.onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const data = await shrinkPhoto(f); await Data.savePhoto(a.visit, "p" + Date.now().toString(36) + rid().slice(0, 3), { visit: a.visit, a: id, data, at: Date.now() }); } catch (er) { toast(er.message || "The photo could not be added."); } render(); };
+    card.querySelectorAll("[data-delap]").forEach(b => b.onclick = () => { Data.delPhoto(a.visit, b.dataset.delap); render(); }); });
+  app.querySelectorAll("[data-big]").forEach(im => im.onclick = () => bigPhoto(im.src));
+  app.querySelectorAll("[data-rep]").forEach(b => b.onclick = async () => { const msg = $("#stMsg", app); msg.textContent = "Building the report…"; try { showReport(await buildReport(b.dataset.rep)); msg.textContent = ""; } catch (e) { console.error(e); msg.textContent = "The report could not be built."; } });
 }
 
 /* ===================== the report: same order as the Excel form, plus photos and the action plan ===================== */
@@ -490,7 +575,7 @@ async function buildReport(vid) {
   bar("PRE-WORK | PERFORMANCE & PROFITABILITY");
   const pw = [150, 62, 62, 48, 62, 48, IW - 432];
   row(["Metric", "Actual", "LY", "%", "Target", "%", "Comments"].map((t, i) => ({ w: pw[i], t, align: i && i < 6 ? "center" : "left" })), { bold: 1, fill: "#e6e6e6" });
-  METRICS.forEach((m, i) => { const p = (v.prework || {})["m" + i] || {}; row([{ w: pw[0], t: m }, { w: pw[1], t: p.a, align: "center" }, { w: pw[2], t: p.ly, align: "center" }, { w: pw[3], t: pc1(p.a, p.ly), align: "center" }, { w: pw[4], t: p.t, align: "center" }, { w: pw[5], t: pc1(p.a, p.t), align: "center" }, { w: pw[6], t: p.c }]); }); y += 10;
+  METRICS.forEach((m, i) => { const p = pwOf(vid)["m" + i] || {}; row([{ w: pw[0], t: m }, { w: pw[1], t: p.a, align: "center" }, { w: pw[2], t: p.ly, align: "center" }, { w: pw[3], t: pc1(p.a, p.ly), align: "center" }, { w: pw[4], t: p.t, align: "center" }, { w: pw[5], t: pc1(p.a, p.t), align: "center" }, { w: pw[6], t: p.c }]); }); y += 10;
 
   bar("1. SCORE SUMMARY");
   const sw = [IW - 240, 90, 150];
