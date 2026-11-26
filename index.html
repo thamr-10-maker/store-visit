@@ -254,6 +254,7 @@ const TABS = [["home", "Home"], ["actions", "Actions"], ["stores", "Stores"]];
 function render() {
   const app = $("#app");
   if (!S.ready) { app.innerHTML = `<main><div class="card stack"><b>Loading…</b>${S.slow ? `<p class="muted small">The data can't be reached yet. Still trying.</p>` : ""}</div></main>`; return; }
+  if (LOAD) return loadView(app);
   if (SID) return storeView(app);
   if (!S.cfg || !visitors().length) return setupView(app);
   if (!ME || !visitors().some(v => v.id === ME)) { const vs = visitors(); if (vs.length === 1) ME = vs[0].id; else return whoView(app); }
@@ -267,15 +268,34 @@ function render() {
   (HOOKS[R.view] || HOOKS.home)(app);
 }
 const VIEWS = {}, HOOKS = {};
+/* one-time link: clears everything and loads a list of stores (the list travels in the link, not in the code) */
+let LOAD = null; try { if (location.hash.startsWith("#load=")) LOAD = JSON.parse(decodeURIComponent(location.hash.slice(6))); } catch (e) { LOAD = null; }
+window.addEventListener("hashchange", () => { if (location.hash.startsWith("#load=")) location.reload(); });
+function loadView(app) {
+  const list = (LOAD && LOAD.stores) || [];
+  app.innerHTML = `<main><div class="card stack"><h1>Reset Store Visit</h1><p>This <b>deletes every visit, action, photo and store</b> that is in the tool now, and loads these ${list.length} stores:</p>
+    <div class="list">${list.map(s => `<div class="row"><span class="grow"><b>${esc(s.name)}</b><div class="small muted">${esc([s.code, s.manager, s.email].filter(Boolean).join(" · "))}</div></span></div>`).join("")}</div>
+    <p class="small muted">It cannot be undone. After it, the tool asks for the visitor's name again.</p><button class="btn bad" id="ldGo">Delete everything and load these stores</button><button class="btn alt" id="ldNo">Cancel</button><p class="small" id="ldMsg"></p></div></main>`;
+  const leave = () => { LOAD = null; history.replaceState(null, "", location.pathname); render(); };
+  $("#ldNo", app).onclick = leave;
+  $("#ldGo", app).onclick = async () => { const msg = $("#ldMsg", app); $("#ldGo", app).disabled = true; msg.textContent = "Working…";
+    try { if (DB) { for (const col of ["sv_photo", "sv_action", "sv_prework", "sv_visit"]) { const q = await DB.collection(col).get(); for (let i = 0; i < q.docs.length; i += 300) { const b = DB.batch(); q.docs.slice(i, i + 300).forEach(d => b.delete(d.ref)); await b.commit(); } } }
+      S.visits = {}; S.actions = {}; S.photos = {}; S.prework = {}; W = null; ME = null; try { localStorage.removeItem("sv-me"); } catch (e) {}
+      const st = {}; list.forEach(x => { st["s" + rid()] = { name: x.name, code: x.code || "", manager: x.manager || "", email: x.email || "", pin: newPin(), active: true }; });
+      await Data.saveCfg({ visitors: {}, stores: st }); toast("Done"); leave(); }
+    catch (e) { console.error(e); msg.textContent = "It did not work: " + (e.message || e); $("#ldGo", app).disabled = false; } };
+}
 function setupView(app) {
+  const has = stores(true).length > 0;
   app.innerHTML = `<main><div class="card stack"><h1>Store Visit</h1><p class="muted">Set this up once. Stores and visitors can be added or changed later.</p>
     <div class="field"><label for="suV">Your name (the visitor)</label><input class="in" id="suV" placeholder="Name"></div>
-    <h3>First store</h3><div class="field"><label for="suS">Store name</label><input class="in" id="suS" placeholder="ON Westfield Mall, Jeddah"></div>
+    <div style="${has ? "display:none" : ""}"><h3>First store</h3></div><div style="${has ? "display:none" : ""}" class="stack"><div class="field"><label for="suS">Store name</label><input class="in" id="suS" placeholder="ON Westfield Mall, Jeddah"></div>
     <div class="row"><div class="field grow"><label for="suC">Store code</label><input class="in" id="suC"></div><div class="field grow"><label for="suM">Store manager</label><input class="in" id="suM"></div></div>
-    <div class="field"><label for="suE">Store e-mail (for sending the report)</label><input class="in" id="suE" type="email" placeholder="store@company.com"></div>
-    <button class="btn" id="suGo">Start</button><p class="small" id="suMsg" style="color:var(--bad)"></p></div></main>`;
-  $("#suGo", app).onclick = () => { const v = $("#suV", app).value.trim(), s = $("#suS", app).value.trim(); if (!v || !s) { $("#suMsg", app).textContent = "Your name and the store name are needed."; return; }
+    <div class="field"><label for="suE">Store e-mail (for sending the report)</label><input class="in" id="suE" type="email" placeholder="store@company.com"></div></div>
+    ${has ? `<p class="small muted">${stores(true).length} stores are already loaded.</p>` : ""}<button class="btn" id="suGo">Start</button><p class="small" id="suMsg" style="color:var(--bad)"></p></div></main>`;
+  $("#suGo", app).onclick = () => { const v = $("#suV", app).value.trim(), s = $("#suS", app).value.trim(); if (!v || (!s && !has)) { $("#suMsg", app).textContent = has ? "Your name is needed." : "Your name and the store name are needed."; return; }
     const vid = "v" + rid(); ME = vid; try { localStorage.setItem("sv-me", vid); } catch (e) {}
+    if (has) { const c = clone(S.cfg); c.visitors = { [vid]: { name: v, active: true } }; Data.saveCfg(c); return render(); }
     Data.saveCfg({ visitors: { [vid]: { name: v, active: true } }, stores: { ["s" + rid()]: { name: s, code: $("#suC", app).value.trim(), manager: $("#suM", app).value.trim(), email: $("#suE", app).value.trim(), pin: newPin(), active: true } } }); render(); };
 }
 function whoView(app) {
